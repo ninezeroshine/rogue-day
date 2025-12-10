@@ -5,6 +5,7 @@ interface TelegramWebApp {
     ready: () => void;
     expand: () => void;
     close: () => void;
+    initData: string;
     MainButton: {
         text: string;
         show: () => void;
@@ -39,6 +40,7 @@ interface TelegramWebApp {
             first_name: string;
             last_name?: string;
             username?: string;
+            photo_url?: string;
         };
     };
     colorScheme: 'light' | 'dark';

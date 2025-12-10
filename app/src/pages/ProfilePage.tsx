@@ -1,24 +1,39 @@
 import { motion } from 'framer-motion';
-import { useUserStore, useUserStats, useUserSettings } from '../store/useUserStore';
-import { useTelegram, useHaptic } from '../hooks/useTelegram';
+import { useSync } from '../hooks/useSync';
+import { useUserStore, useUserSettings } from '../store/useUserStore';
+import { useHaptic } from '../hooks/useTelegram';
 import { formatDuration } from '../lib/utils';
+import api from '../lib/api';
 
 export function ProfilePage() {
-    const { user } = useTelegram();
-    const stats = useUserStats();
-    const settings = useUserSettings();
-    const { updateSettings, resetProgress } = useUserStore();
+    const { displayName, username, photoUrl, stats, isOnline, isTMA } = useSync();
+    const localSettings = useUserSettings();
+    const { updateSettings: updateLocalSettings } = useUserStore();
     const { notification } = useHaptic();
 
-    const handleToggle = (key: keyof typeof settings) => {
-        if (typeof settings[key] === 'boolean') {
-            updateSettings({ [key]: !settings[key] });
+    const handleToggle = async (key: 'sounds' | 'haptics' | 'notifications') => {
+        // Update local first
+        const newValue = !localSettings[key];
+        updateLocalSettings({ [key]: newValue });
+
+        // Sync to server if online
+        if (isOnline) {
+            try {
+                const settingsMap = {
+                    sounds: 'sounds_enabled',
+                    haptics: 'haptics_enabled',
+                    notifications: 'notifications_enabled',
+                };
+                await api.user.updateSettings({ [settingsMap[key]]: newValue });
+            } catch (err) {
+                console.error('Failed to sync settings:', err);
+            }
         }
     };
 
     const handleReset = () => {
         if (confirm('Точно сбросить весь прогресс? Это действие необратимо!')) {
-            resetProgress();
+            useUserStore.getState().resetProgress();
             notification('warning');
         }
     };
@@ -27,15 +42,31 @@ export function ProfilePage() {
         <div className="min-h-screen p-4">
             {/* Header / User info */}
             <header className="mb-6 text-center">
-                <div className="w-20 h-20 bg-[var(--bg-card)] rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-[var(--border-default)]">
-                    <span className="text-3xl">👤</span>
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-[var(--border-default)] overflow-hidden bg-[var(--bg-card)]">
+                    {photoUrl ? (
+                        <img
+                            src={photoUrl}
+                            alt={displayName}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <span className="text-3xl">👤</span>
+                    )}
                 </div>
-                <h1 className="text-xl font-bold">
-                    {user?.first_name || 'Оператор'}
-                </h1>
-                {user?.username && (
-                    <p className="text-sm text-[var(--text-muted)]">@{user.username}</p>
+                <h1 className="text-xl font-bold">{displayName}</h1>
+                {username && (
+                    <p className="text-sm text-[var(--text-muted)]">@{username}</p>
                 )}
+
+                {/* Connection status */}
+                <div className="mt-2 flex items-center justify-center gap-2">
+                    <span
+                        className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-yellow-500'}`}
+                    />
+                    <span className="text-xs text-[var(--text-muted)]">
+                        {isOnline ? 'Синхронизировано' : 'Офлайн режим'}
+                    </span>
+                </div>
             </header>
 
             {/* Stats grid */}
@@ -52,37 +83,37 @@ export function ProfilePage() {
                     <StatCard
                         icon="✨"
                         label="Всего XP"
-                        value={stats.totalXP.toLocaleString()}
+                        value={stats.total_xp.toLocaleString()}
                         color="var(--accent-xp)"
                     />
                     <StatCard
                         icon="🚁"
                         label="Экстракций"
-                        value={stats.totalExtractions.toString()}
+                        value={stats.total_extractions.toString()}
                         color="var(--accent-primary)"
                     />
                     <StatCard
                         icon="✅"
                         label="Задач"
-                        value={stats.totalTasksCompleted.toString()}
+                        value={stats.total_tasks_completed.toString()}
                         color="var(--accent-secondary)"
                     />
                     <StatCard
                         icon="⏱️"
                         label="В фокусе"
-                        value={formatDuration(stats.totalFocusMinutes)}
+                        value={formatDuration(stats.total_focus_minutes)}
                         color="var(--text-primary)"
                     />
                     <StatCard
                         icon="🔥"
                         label="Текущая серия"
-                        value={`${stats.currentStreak} дн`}
+                        value={`${stats.current_streak} дн`}
                         color="var(--accent-warning)"
                     />
                     <StatCard
                         icon="🏆"
                         label="Лучшая серия"
-                        value={`${stats.bestStreak} дн`}
+                        value={`${stats.best_streak} дн`}
                         color="var(--accent-xp)"
                     />
                 </div>
@@ -103,7 +134,7 @@ export function ProfilePage() {
                         icon="🔊"
                         label="Звуки"
                         description="Аудио при выполнении задач"
-                        value={settings.sounds}
+                        value={localSettings.sounds}
                         onChange={() => handleToggle('sounds')}
                     />
 
@@ -111,7 +142,7 @@ export function ProfilePage() {
                         icon="📳"
                         label="Вибрация"
                         description="Haptic feedback"
-                        value={settings.haptics}
+                        value={localSettings.haptics}
                         onChange={() => handleToggle('haptics')}
                     />
 
@@ -119,12 +150,26 @@ export function ProfilePage() {
                         icon="🔔"
                         label="Уведомления"
                         description="Push-напоминания от бота"
-                        value={settings.notifications}
+                        value={localSettings.notifications}
                         onChange={() => handleToggle('notifications')}
                     />
+                </div>
+            </motion.section>
 
-                    {/* Future: Ghost System toggle */}
-                    {/* <SettingToggle ... /> */}
+            {/* Info section */}
+            <motion.section
+                className="mt-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+            >
+                <div className="card bg-[var(--bg-secondary)] text-center py-4">
+                    <p className="text-sm text-[var(--text-muted)]">
+                        {isTMA ? '📱 Telegram Mini App' : '🖥️ Режим разработки'}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
+                        Версия 0.1.0
+                    </p>
                 </div>
             </motion.section>
 
@@ -139,12 +184,9 @@ export function ProfilePage() {
                     onClick={handleReset}
                     className="w-full py-3 text-[var(--accent-danger)] border border-[var(--accent-danger)] rounded-xl opacity-50 hover:opacity-100 transition-opacity"
                 >
-                    🗑️ Сбросить прогресс
+                    🗑️ Сбросить локальные данные
                 </button>
             </motion.section>
-
-            {/* Future sections placeholder */}
-            {/* Achievements, Tech Tree, etc. */}
         </div>
     );
 }

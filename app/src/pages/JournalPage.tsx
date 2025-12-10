@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { useExtractionHistory } from '../store/useUserStore';
+import { useSync } from '../hooks/useSync';
 import { formatDuration } from '../lib/utils';
 
 export function JournalPage() {
-    const history = useExtractionHistory();
+    const localHistory = useExtractionHistory();
+    const { isOnline, stats } = useSync();
 
-    // Group by week (simplified for MVP)
+    // Format date for display
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('ru-RU', {
@@ -25,8 +27,46 @@ export function JournalPage() {
                 </p>
             </header>
 
+            {/* Summary stats */}
+            <motion.div
+                className="card mb-6 bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+            >
+                <div className="flex justify-around text-center">
+                    <div>
+                        <div className="text-2xl font-bold font-mono" style={{ color: 'var(--accent-xp)' }}>
+                            {stats.total_xp.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-[var(--text-muted)]">Всего XP</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold font-mono text-[var(--accent-primary)]">
+                            {stats.total_extractions}
+                        </div>
+                        <div className="text-xs text-[var(--text-muted)]">Экстракций</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold font-mono">
+                            {stats.current_streak}
+                        </div>
+                        <div className="text-xs text-[var(--text-muted)]">Дней 🔥</div>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Connection status */}
+            <div className="flex items-center gap-2 mb-4">
+                <span
+                    className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-yellow-500'}`}
+                />
+                <span className="text-xs text-[var(--text-muted)]">
+                    {isOnline ? 'Данные с сервера' : 'Локальные данные'}
+                </span>
+            </div>
+
             {/* History list */}
-            {history.length === 0 ? (
+            {localHistory.length === 0 ? (
                 <motion.div
                     className="flex flex-col items-center justify-center py-16 text-center"
                     initial={{ opacity: 0, y: 20 }}
@@ -42,7 +82,7 @@ export function JournalPage() {
                 </motion.div>
             ) : (
                 <div className="space-y-3">
-                    {history.map((extraction, index) => (
+                    {localHistory.map((extraction, index) => (
                         <motion.div
                             key={extraction.id}
                             className="card"

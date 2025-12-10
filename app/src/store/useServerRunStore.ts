@@ -152,16 +152,21 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
     },
 }));
 
-// Selectors
-export const useServerRunData = () => useServerRunStore(state => ({
-    run: state.run,
-    isLoading: state.isLoading,
-    error: state.error,
-}));
+// Selectors - use useShallow or individual selectors to avoid infinite loops
+// BAD: returning new object causes re-render -> infinite loop
+// GOOD: use useShallow or select primitives
 
-export const useServerTasks = () => useServerRunStore(state => state.run?.tasks || []);
-export const useServerDailyXP = () => useServerRunStore(state => state.run?.daily_xp || 0);
-export const useServerEnergy = () => useServerRunStore(state => ({
-    current: state.run?.focus_energy || 50,
-    max: state.run?.max_energy || 50,
-}));
+// Stable constants
+const EMPTY_TASKS: any[] = [];
+
+export const useServerRun = () => useServerRunStore(state => state.run);
+export const useServerIsLoading = () => useServerRunStore(state => state.isLoading);
+export const useServerError = () => useServerRunStore(state => state.error);
+export const useServerTasks = () => useServerRunStore(state => state.run?.tasks ?? EMPTY_TASKS);
+export const useServerDailyXP = () => useServerRunStore(state => state.run?.daily_xp ?? 0);
+export const useServerCurrentEnergy = () => useServerRunStore(state => state.run?.focus_energy ?? 50);
+export const useServerMaxEnergy = () => useServerRunStore(state => state.run?.max_energy ?? 50);
+
+// For components that need multiple values, use the store directly
+// Example: const { run, isLoading } = useServerRunStore(state => ({ run: state.run, isLoading: state.isLoading }))
+// But be careful - this still creates new object! Use useShallow from zustand/shallow if needed.

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTelegram } from './useTelegram';
 import api from '../lib/api';
 import type { UserResponse, RunResponse } from '../lib/api';
@@ -71,17 +71,18 @@ export function useSync() {
     // To get photo, you need to use Bot API getUserProfilePhotos on backend
     const photoUrl = null;
 
-    // User stats from server
-    const stats = state.user?.stats || {
+    // User stats from server - memoized to prevent infinite loops
+    const stats = useMemo(() => state.user?.stats || {
         total_xp: 0,
         total_extractions: 0,
         total_tasks_completed: 0,
         total_focus_minutes: 0,
         current_streak: 0,
         best_streak: 0,
-    };
+    }, [state.user?.stats]);
 
-    return {
+    // Memoize the entire return object to prevent new references
+    return useMemo(() => ({
         ...state,
         displayName,
         username,
@@ -90,7 +91,7 @@ export function useSync() {
         isTMA,
         telegramUser,
         refetch: initialize,
-    };
+    }), [state, displayName, username, photoUrl, stats, isTMA, telegramUser, initialize]);
 }
 
 /**
@@ -153,7 +154,8 @@ export function useRunSync() {
         await api.task.delete(taskId);
     }, []);
 
-    return {
+    // Memoize to prevent new references on each render
+    return useMemo(() => ({
         isSyncing,
         startRun,
         extractRun,
@@ -162,5 +164,5 @@ export function useRunSync() {
         completeTask,
         failTask,
         deleteTask,
-    };
+    }), [isSyncing, startRun, extractRun, addTask, startTask, completeTask, failTask, deleteTask]);
 }

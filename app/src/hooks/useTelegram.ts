@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useMemo } from 'react';
 
 /**
  * Telegram WebApp types
@@ -118,16 +118,18 @@ export function useTelegram() {
     const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
     const colorScheme = tg?.colorScheme || 'dark';
     const themeParams = tg?.themeParams || {};
+    const initData = tg?.initData || '';
 
-    return {
+    // Memoize return object to prevent infinite re-renders
+    return useMemo(() => ({
         tg,
         isReady,
         isTMA,
         user,
         colorScheme,
         themeParams,
-        initData: tg?.initData || '',
-    };
+        initData,
+    }), [tg, isReady, isTMA, user, colorScheme, themeParams, initData]);
 }
 
 /**
@@ -154,11 +156,11 @@ export function useHaptic() {
         }
     }, [tg, isTMA]);
 
-    return {
+    return useMemo(() => ({
         impact,
         notification,
         selection,
-    };
+    }), [impact, notification, selection]);
 }
 
 /**

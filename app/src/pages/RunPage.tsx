@@ -1,24 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useServerRunStore, useServerRunData, useServerDailyXP, useServerEnergy, useServerTasks } from '../store/useServerRunStore';
+import { useServerRunStore, useServerRun, useServerIsLoading, useServerError, useServerDailyXP, useServerTasks, useServerCurrentEnergy, useServerMaxEnergy } from '../store/useServerRunStore';
 import { useTelegram } from '../hooks/useTelegram';
-import { useSync } from '../hooks/useSync';
 import { ServerTaskList } from '../components/run/ServerTaskList';
 import { ServerAddTaskModal } from '../components/run/ServerAddTaskModal';
 import { getPercentage } from '../lib/utils';
 
 export function RunPage() {
     const { isReady } = useTelegram();
-    const { refetch: refetchUser } = useSync();
 
-    // Server state
-    const { run, isLoading, error } = useServerRunData();
+    // Server state - use individual selectors to avoid infinite loops
+    const run = useServerRun();
+    const isLoading = useServerIsLoading();
+    const error = useServerError();
     const dailyXP = useServerDailyXP();
-    const energy = useServerEnergy();
     const tasks = useServerTasks();
+    const currentEnergy = useServerCurrentEnergy();
+    const maxEnergy = useServerMaxEnergy();
 
-    // Actions
-    const { loadCurrentRun, startNewRun, extractRun } = useServerRunStore();
+    // Get actions directly from store.getState() to avoid re-render triggers
+    const loadCurrentRun = useCallback(() => {
+        return useServerRunStore.getState().loadCurrentRun();
+    }, []);
+
+    const startNewRun = useCallback(() => {
+        return useServerRunStore.getState().startNewRun();
+    }, []);
+
+    const extractRunAction = useCallback(() => {
+        return useServerRunStore.getState().extractRun();
+    }, []);
 
     const [showAddTask, setShowAddTask] = useState(false);
     const [extractionResult, setExtractionResult] = useState<{
@@ -39,15 +50,13 @@ export function RunPage() {
     };
 
     const handleExtract = async () => {
-        const result = await extractRun();
+        const result = await extractRunAction();
         if (result) {
             setExtractionResult({
                 finalXP: result.finalXP,
                 tasksCompleted: result.tasksCompleted,
                 totalFocusMinutes: result.totalFocusMinutes,
             });
-            // Refresh user stats after extraction
-            refetchUser();
         }
     };
 
@@ -196,13 +205,13 @@ export function RunPage() {
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-[var(--text-secondary)]">⚡ Энергия</span>
-                        <span className="font-mono font-bold">{energy.current}/{energy.max}</span>
+                        <span className="font-mono font-bold">{currentEnergy}/{maxEnergy}</span>
                     </div>
                     <div className="h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--border-default)]">
                         <motion.div
                             className="h-full rounded-full bg-[var(--energy-full)]"
                             initial={{ width: 0 }}
-                            animate={{ width: `${getPercentage(energy.current, energy.max)}%` }}
+                            animate={{ width: `${getPercentage(currentEnergy, maxEnergy)}%` }}
                         />
                     </div>
                 </div>
@@ -242,8 +251,8 @@ export function RunPage() {
             {showAddTask && (
                 <ServerAddTaskModal
                     onClose={() => setShowAddTask(false)}
-                    maxEnergy={energy.max}
-                    currentEnergy={energy.current}
+                    maxEnergy={maxEnergy}
+                    currentEnergy={currentEnergy}
                 />
             )}
         </div>

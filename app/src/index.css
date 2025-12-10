@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* ===== ROGUE-DAY DESIGN SYSTEM ===== */
+
+/* Color Palette - Dark Tactical Theme */
+:root {
+  /* Base colors */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-card: #1a1a24;
+  --bg-hover: #22222e;
+  
+  /* Accent colors */
+  --accent-primary: #00ff88;      /* Electric Lime - Success */
+  --accent-secondary: #00d4ff;    /* Cyan - Focus */
+  --accent-warning: #ff9500;      /* Orange - Risk */
+  --accent-danger: #ff3b3b;       /* Red - Fail */
+  --accent-xp: #ffd700;           /* Gold - XP */
+  
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+  --text-muted: #606070;
+  
+  /* Borders */
+  --border-default: #2a2a3a;
+  --border-active: #00ff88;
+  
+  /* Energy bar */
+  --energy-full: #00ff88;
+  --energy-mid: #ffd700;
+  --energy-low: #ff3b3b;
+  
+  /* Telegram theme variables (will be overwritten by TMA) */
+  --tg-theme-bg-color: var(--bg-primary);
+  --tg-theme-text-color: var(--text-primary);
+  --tg-theme-button-color: var(--accent-primary);
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Utility classes for Rogue-Day */
+.glow-success {
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.glow-danger {
+  box-shadow: 0 0 20px rgba(255, 59, 59, 0.3);
+}
+
+.glow-xp {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Card base style */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+/* Button base styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-primary);
+}
+
+.btn-danger {
+  background: var(--accent-danger);
+  color: white;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

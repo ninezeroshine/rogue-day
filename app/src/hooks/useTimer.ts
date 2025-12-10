@@ -4,21 +4,25 @@ interface UseTimerOptions {
     duration: number; // in seconds
     onComplete?: () => void;
     onTick?: (remaining: number) => void;
+    autoStart?: boolean; // Auto-start timer when duration > 0
 }
 
 interface UseTimerReturn {
     remaining: number;
     isRunning: boolean;
     progress: number; // 0-100
+    totalDuration: number; // Original duration for progress calculation
     start: () => void;
     pause: () => void;
     reset: () => void;
     stop: () => void;
+    setRemainingTime: (seconds: number) => void; // Manual override
 }
 
-export function useTimer({ duration, onComplete, onTick }: UseTimerOptions): UseTimerReturn {
+export function useTimer({ duration, onComplete, onTick, autoStart = false }: UseTimerOptions): UseTimerReturn {
     const [remaining, setRemaining] = useState(duration);
-    const [isRunning, setIsRunning] = useState(false);
+    const [totalDuration, setTotalDuration] = useState(duration);
+    const [isRunning, setIsRunning] = useState(autoStart && duration > 0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const onCompleteRef = useRef(onComplete);
     const onTickRef = useRef(onTick);
@@ -28,6 +32,15 @@ export function useTimer({ duration, onComplete, onTick }: UseTimerOptions): Use
         onCompleteRef.current = onComplete;
         onTickRef.current = onTick;
     }, [onComplete, onTick]);
+
+    // Update remaining when duration changes (for server sync)
+    useEffect(() => {
+        setRemaining(duration);
+        setTotalDuration(duration);
+        if (autoStart && duration > 0) {
+            setIsRunning(true);
+        }
+    }, [duration, autoStart]);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -66,8 +79,10 @@ export function useTimer({ duration, onComplete, onTick }: UseTimerOptions): Use
     }, [isRunning, remaining]);
 
     const start = useCallback(() => {
-        setIsRunning(true);
-    }, []);
+        if (remaining > 0) {
+            setIsRunning(true);
+        }
+    }, [remaining]);
 
     const pause = useCallback(() => {
         setIsRunning(false);
@@ -75,23 +90,32 @@ export function useTimer({ duration, onComplete, onTick }: UseTimerOptions): Use
 
     const reset = useCallback(() => {
         setIsRunning(false);
-        setRemaining(duration);
-    }, [duration]);
+        setRemaining(totalDuration);
+    }, [totalDuration]);
 
     const stop = useCallback(() => {
         setIsRunning(false);
-        setRemaining(duration);
-    }, [duration]);
+        setRemaining(totalDuration);
+    }, [totalDuration]);
 
-    const progress = ((duration - remaining) / duration) * 100;
+    const setRemainingTime = useCallback((seconds: number) => {
+        setRemaining(Math.max(0, seconds));
+    }, []);
+
+    // Progress: 0 at start, 100 at end
+    const progress = totalDuration > 0
+        ? ((totalDuration - remaining) / totalDuration) * 100
+        : 0;
 
     return {
         remaining,
         isRunning,
         progress,
+        totalDuration,
         start,
         pause,
         reset,
         stop,
+        setRemainingTime,
     };
 }

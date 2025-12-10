@@ -199,20 +199,33 @@ export function RunPage() {
             {/* Header */}
             <header className="mb-6">
                 <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h1 className="text-xl font-bold">Ран активен</h1>
-                        <p className="text-sm text-[var(--text-muted)]">
-                            {totalFocusMinutes} мин в фокусе
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <motion.span
+                            className="text-2xl"
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        >
+                            ⚡
+                        </motion.span>
+                        <div>
+                            <h1 className="text-xl font-bold" style={{ color: 'var(--accent-primary)' }}>
+                                Ран активен
+                            </h1>
+                            <p className="text-sm text-[var(--text-muted)]">
+                                {totalFocusMinutes} мин в фокусе • {tasks.length} задач
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Extraction button - in header! */}
-                    <button
+                    {/* Extraction button - glowing */}
+                    <motion.button
                         onClick={() => setShowExtraction(true)}
-                        className="btn btn-secondary text-sm px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
+                        className="btn btn-secondary text-sm px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] font-medium"
+                        whileHover={{ scale: 1.05, borderColor: 'var(--accent-xp)' }}
+                        whileTap={{ scale: 0.95 }}
                     >
                         🚁 Экстракция
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Stats bar */}
@@ -227,12 +240,23 @@ export function RunPage() {
                 <ServerTaskList tasks={tasks} />
             </main>
 
-            {/* Add task FAB - positioned above tab bar */}
+            {/* Add task FAB - with glow animation */}
             <motion.button
                 onClick={() => setShowAddTask(true)}
-                className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-2xl font-bold shadow-lg flex items-center justify-center z-30"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
+                className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-3xl font-bold shadow-lg flex items-center justify-center z-30 glow-success"
+                whileHover={{ scale: 1.15, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                animate={{
+                    boxShadow: [
+                        '0 0 20px rgba(0, 255, 136, 0.4)',
+                        '0 0 40px rgba(0, 255, 136, 0.6)',
+                        '0 0 20px rgba(0, 255, 136, 0.4)',
+                    ],
+                }}
+                transition={{
+                    boxShadow: { duration: 2, repeat: Infinity },
+                    scale: { type: 'spring', stiffness: 400 },
+                }}
             >
                 +
             </motion.button>

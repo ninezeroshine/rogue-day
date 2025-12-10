@@ -57,22 +57,40 @@ declare global {
 export function useTelegram() {
     const [isReady, setIsReady] = useState(false);
     const [isTMA, setIsTMA] = useState(false);
-
-    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+    const [user, setUser] = useState<{
+        id: number;
+        first_name: string;
+        last_name?: string;
+        username?: string;
+        photo_url?: string;
+    } | undefined>(undefined);
 
     useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+
         if (tg) {
             tg.ready();
             tg.expand();
             setIsTMA(true);
+
+            // Get user from initDataUnsafe
+            const telegramUser = tg.initDataUnsafe?.user;
+            if (telegramUser) {
+                setUser(telegramUser);
+                console.log('Telegram user loaded:', telegramUser);
+            } else {
+                console.log('No Telegram user in initDataUnsafe');
+            }
+
             setIsReady(true);
         } else {
             // Not in Telegram, still ready for development
+            console.log('Not in Telegram WebApp');
             setIsReady(true);
         }
-    }, [tg]);
+    }, []);
 
-    const user = tg?.initDataUnsafe?.user;
+    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
     const colorScheme = tg?.colorScheme || 'dark';
     const themeParams = tg?.themeParams || {};
 

@@ -63,10 +63,13 @@ export function useSync() {
         initialize();
     }, [initialize]);
 
-    // Get user display info - prioritize Telegram data, then server, then fallback
+    // Get user display info - prioritize Telegram data (most fresh), then server
     const displayName = telegramUser?.first_name || state.user?.first_name || 'Оператор';
     const username = telegramUser?.username || state.user?.username || null;
-    const photoUrl = telegramUser?.photo_url || null;
+
+    // Note: photo_url is NOT provided in initDataUnsafe by Telegram
+    // To get photo, you need to use Bot API getUserProfilePhotos on backend
+    const photoUrl = null;
 
     // User stats from server
     const stats = state.user?.stats || {
@@ -78,14 +81,6 @@ export function useSync() {
         best_streak: 0,
     };
 
-    // Debug info
-    console.log('Sync state:', {
-        isTMA,
-        telegramUser,
-        serverUser: state.user,
-        displayName,
-    });
-
     return {
         ...state,
         displayName,
@@ -93,7 +88,7 @@ export function useSync() {
         photoUrl,
         stats,
         isTMA,
-        telegramUser, // expose for debugging
+        telegramUser,
         refetch: initialize,
     };
 }

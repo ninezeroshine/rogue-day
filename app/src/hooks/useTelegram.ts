@@ -1,11 +1,30 @@
 import { useEffect, useCallback, useState } from 'react';
 
-// TMA SDK types (we'll import the real SDK later)
+/**
+ * Telegram WebApp types
+ * Full SDK: https://core.telegram.org/bots/webapps
+ */
+interface TelegramUser {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+    is_premium?: boolean;
+    photo_url?: string;
+}
+
 interface TelegramWebApp {
     ready: () => void;
     expand: () => void;
     close: () => void;
     initData: string;
+    initDataUnsafe: {
+        query_id?: string;
+        user?: TelegramUser;
+        auth_date?: number;
+        hash?: string;
+    };
     MainButton: {
         text: string;
         show: () => void;
@@ -34,16 +53,9 @@ interface TelegramWebApp {
         button_color?: string;
         button_text_color?: string;
     };
-    initDataUnsafe: {
-        user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-            photo_url?: string;
-        };
-    };
     colorScheme: 'light' | 'dark';
+    platform: string;
+    version: string;
 }
 
 declare global {
@@ -54,39 +66,52 @@ declare global {
     }
 }
 
+/**
+ * Main Telegram hook - provides access to WebApp API and user data
+ */
 export function useTelegram() {
     const [isReady, setIsReady] = useState(false);
     const [isTMA, setIsTMA] = useState(false);
-    const [user, setUser] = useState<{
-        id: number;
-        first_name: string;
-        last_name?: string;
-        username?: string;
-        photo_url?: string;
-    } | undefined>(undefined);
+    const [user, setUser] = useState<TelegramUser | null>(null);
 
     useEffect(() => {
-        const tg = window.Telegram?.WebApp;
+        // Wait for DOM to be ready
+        const initTelegram = () => {
+            const tg = window.Telegram?.WebApp;
 
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            setIsTMA(true);
+            if (tg) {
+                // Initialize the app
+                tg.ready();
+                tg.expand();
 
-            // Get user from initDataUnsafe
-            const telegramUser = tg.initDataUnsafe?.user;
-            if (telegramUser) {
-                setUser(telegramUser);
-                console.log('Telegram user loaded:', telegramUser);
+                setIsTMA(true);
+
+                // Get user data from initDataUnsafe
+                const telegramUser = tg.initDataUnsafe?.user;
+                if (telegramUser) {
+                    setUser(telegramUser);
+                    console.log('✅ Telegram user:', telegramUser.first_name, '@' + telegramUser.username);
+                } else {
+                    console.warn('⚠️ Telegram WebApp loaded but no user data in initDataUnsafe');
+                    console.log('initData:', tg.initData);
+                    console.log('initDataUnsafe:', tg.initDataUnsafe);
+                }
+
+                setIsReady(true);
             } else {
-                console.log('No Telegram user in initDataUnsafe');
+                // Not in Telegram environment
+                console.log('ℹ️ Not in Telegram WebApp (dev mode)');
+                setIsReady(true);
             }
+        };
 
-            setIsReady(true);
+        // Small delay to ensure Telegram SDK is loaded
+        if (window.Telegram?.WebApp) {
+            initTelegram();
         } else {
-            // Not in Telegram, still ready for development
-            console.log('Not in Telegram WebApp');
-            setIsReady(true);
+            // Wait for script to load
+            const timeout = setTimeout(initTelegram, 100);
+            return () => clearTimeout(timeout);
         }
     }, []);
 
@@ -101,9 +126,13 @@ export function useTelegram() {
         user,
         colorScheme,
         themeParams,
+        initData: tg?.initData || '',
     };
 }
 
+/**
+ * Haptic feedback hook
+ */
 export function useHaptic() {
     const { tg, isTMA } = useTelegram();
 
@@ -132,6 +161,9 @@ export function useHaptic() {
     };
 }
 
+/**
+ * Main Button hook
+ */
 export function useMainButton(text: string, onClick: () => void, visible = true) {
     const { tg, isTMA } = useTelegram();
 
@@ -155,6 +187,9 @@ export function useMainButton(text: string, onClick: () => void, visible = true)
     }, [tg, isTMA, text, onClick, visible]);
 }
 
+/**
+ * Back Button hook
+ */
 export function useBackButton(onClick: () => void, visible = true) {
     const { tg, isTMA } = useTelegram();
 

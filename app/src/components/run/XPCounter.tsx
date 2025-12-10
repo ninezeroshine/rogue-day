@@ -1,28 +1,30 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDailyXP } from '../../store/useRunStore';
 import { useState, useEffect } from 'react';
 
-export function XPCounter() {
-    const dailyXP = useDailyXP();
-    const [previousXP, setPreviousXP] = useState(dailyXP);
+interface XPCounterProps {
+    xp: number;
+}
+
+export function XPCounter({ xp }: XPCounterProps) {
+    const [previousXP, setPreviousXP] = useState(xp);
     const [xpDelta, setXpDelta] = useState(0);
     const [showDelta, setShowDelta] = useState(false);
 
     useEffect(() => {
-        if (dailyXP !== previousXP) {
-            const delta = dailyXP - previousXP;
+        if (xp !== previousXP) {
+            const delta = xp - previousXP;
             setXpDelta(delta);
             setShowDelta(true);
-            setPreviousXP(dailyXP);
+            setPreviousXP(xp);
 
             // Hide delta after animation
             const timer = setTimeout(() => setShowDelta(false), 1500);
             return () => clearTimeout(timer);
         }
-    }, [dailyXP, previousXP]);
+    }, [xp, previousXP]);
 
     return (
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center gap-2 bg-[var(--bg-card)] rounded-xl p-3 border border-[var(--border-default)]">
             <span className="text-2xl">✨</span>
 
             <div className="flex flex-col">
@@ -30,14 +32,14 @@ export function XPCounter() {
                     Дневной XP
                 </span>
                 <motion.span
-                    key={dailyXP}
+                    key={xp}
                     className="text-2xl font-bold font-mono"
                     style={{ color: 'var(--accent-xp)' }}
                     initial={{ scale: 1.2 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {dailyXP.toLocaleString()}
+                    {xp.toLocaleString()}
                 </motion.span>
             </div>
 

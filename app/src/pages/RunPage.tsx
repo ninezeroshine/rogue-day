@@ -4,10 +4,12 @@ import { useServerRunStore, useServerRun, useServerIsLoading, useServerError, us
 import { useTelegram } from '../hooks/useTelegram';
 import { ServerTaskList } from '../components/run/ServerTaskList';
 import { ServerAddTaskModal } from '../components/run/ServerAddTaskModal';
-import { getPercentage } from '../lib/utils';
+import { ExtractionModal } from '../components/run/ExtractionModal';
+import { EnergyMeter } from '../components/run/EnergyMeter';
+import { XPCounter } from '../components/run/XPCounter';
 
 export function RunPage() {
-    const { isReady } = useTelegram();
+    const { isReady, user } = useTelegram();
 
     // Server state - use individual selectors to avoid infinite loops
     const run = useServerRun();
@@ -17,6 +19,11 @@ export function RunPage() {
     const tasks = useServerTasks();
     const currentEnergy = useServerCurrentEnergy();
     const maxEnergy = useServerMaxEnergy();
+
+    // Calculate total focus minutes from completed tasks
+    const totalFocusMinutes = tasks
+        .filter(t => t.status === 'completed')
+        .reduce((sum, t) => sum + (t.duration || 0), 0);
 
     // Get actions directly from store.getState() to avoid re-render triggers
     const loadCurrentRun = useCallback(() => {
@@ -32,6 +39,7 @@ export function RunPage() {
     }, []);
 
     const [showAddTask, setShowAddTask] = useState(false);
+    const [showExtraction, setShowExtraction] = useState(false);
     const [extractionResult, setExtractionResult] = useState<{
         finalXP: number;
         tasksCompleted: number;
@@ -57,6 +65,7 @@ export function RunPage() {
                 tasksCompleted: result.tasksCompleted,
                 totalFocusMinutes: result.totalFocusMinutes,
             });
+            setShowExtraction(false);
         }
     };
 
@@ -86,7 +95,7 @@ export function RunPage() {
                     <div className="text-[var(--accent-danger)] mb-4">{error}</div>
                     <button
                         onClick={() => loadCurrentRun()}
-                        className="btn-primary"
+                        className="btn btn-primary px-6 py-3 rounded-xl bg-[var(--accent-primary)] text-white font-medium"
                     >
                         Повторить
                     </button>
@@ -140,7 +149,7 @@ export function RunPage() {
 
                     <button
                         onClick={handleNewRun}
-                        className="btn-primary text-lg px-8 py-4"
+                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success"
                     >
                         🚀 Новый Ран
                     </button>
@@ -152,22 +161,32 @@ export function RunPage() {
     // No active run - show start screen
     if (!run) {
         return (
-            <div className="min-h-screen p-4 flex flex-col items-center justify-center">
+            <div className="min-h-screen p-4 flex flex-col">
                 <motion.div
-                    className="text-center"
+                    className="flex-1 flex flex-col items-center justify-center text-center"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
                     <div className="text-6xl mb-6">🎯</div>
                     <h1 className="text-3xl font-bold mb-2">Rogue-Day</h1>
-                    <p className="text-[var(--text-secondary)] mb-8 max-w-xs">
-                        Каждый день — новый ран. Добавляй задачи, зарабатывай XP, извлекай прогресс.
+                    <p className="text-[var(--text-secondary)] mb-2">
+                        Каждый день — новый ран
                     </p>
+                    <p className="text-sm text-[var(--text-muted)] mb-8 max-w-xs">
+                        Выполняй задачи, зарабатывай XP, эвакуируй прогресс
+                    </p>
+
+                    {user && (
+                        <p className="text-sm text-[var(--text-muted)] mb-4">
+                            Привет, {user.first_name}! 👋
+                        </p>
+                    )}
+
                     <button
                         onClick={handleStartRun}
-                        className="btn-primary text-lg px-8 py-4"
+                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success animate-pulse-glow"
                     >
-                        🚀 Начать Ран
+                        ⚡ Начать Ран
                     </button>
                 </motion.div>
             </div>
@@ -175,86 +194,64 @@ export function RunPage() {
     }
 
     // Active run
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const totalTasks = tasks.length;
-
     return (
-        <div className="min-h-screen p-4 pb-24 flex flex-col">
+        <div className="min-h-screen p-4 flex flex-col">
             {/* Header */}
-            <header className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold">🎯 Активный Ран</h1>
-                    <p className="text-sm text-[var(--text-muted)]">
-                        {completedTasks}/{totalTasks} задач • {run.run_date}
-                    </p>
-                </div>
-                {/* Inline XP Counter */}
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl">✨</span>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-[var(--text-muted)]">XP</span>
-                        <span className="text-xl font-bold font-mono" style={{ color: 'var(--accent-xp)' }}>
-                            {dailyXP}
-                        </span>
+            <header className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 className="text-xl font-bold">Ран активен</h1>
+                        <p className="text-sm text-[var(--text-muted)]">
+                            {totalFocusMinutes} мин в фокусе
+                        </p>
                     </div>
+
+                    {/* Extraction button - in header! */}
+                    <button
+                        onClick={() => setShowExtraction(true)}
+                        className="btn btn-secondary text-sm px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
+                    >
+                        🚁 Экстракция
+                    </button>
+                </div>
+
+                {/* Stats bar */}
+                <div className="grid grid-cols-2 gap-4">
+                    <XPCounter xp={dailyXP} />
+                    <EnergyMeter current={currentEnergy} max={maxEnergy} />
                 </div>
             </header>
 
-            {/* Inline Energy Meter */}
-            <div className="mb-6">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-sm">
-                        <span className="text-[var(--text-secondary)]">⚡ Энергия</span>
-                        <span className="font-mono font-bold">{currentEnergy}/{maxEnergy}</span>
-                    </div>
-                    <div className="h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--border-default)]">
-                        <motion.div
-                            className="h-full rounded-full bg-[var(--energy-full)]"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${getPercentage(currentEnergy, maxEnergy)}%` }}
-                        />
-                    </div>
-                </div>
-            </div>
-
             {/* Task list */}
-            <div className="flex-1">
+            <main className="flex-1 overflow-y-auto pb-20">
                 <ServerTaskList tasks={tasks} />
-            </div>
+            </main>
 
-            {/* FAB */}
-            <div className="fixed bottom-24 right-4 flex flex-col gap-3">
-                {/* Add task */}
-                <motion.button
-                    onClick={() => setShowAddTask(true)}
-                    className="w-14 h-14 rounded-full bg-[var(--accent-primary)] text-white flex items-center justify-center shadow-lg"
-                    whileTap={{ scale: 0.95 }}
-                >
-                    <span className="text-2xl">+</span>
-                </motion.button>
+            {/* Add task FAB - positioned above tab bar */}
+            <motion.button
+                onClick={() => setShowAddTask(true)}
+                className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-2xl font-bold shadow-lg flex items-center justify-center z-30"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                +
+            </motion.button>
 
-                {/* Extract */}
-                {tasks.length > 0 && (
-                    <motion.button
-                        onClick={handleExtract}
-                        className="w-14 h-14 rounded-full bg-[var(--accent-secondary)] text-white flex items-center justify-center shadow-lg"
-                        whileTap={{ scale: 0.95 }}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                    >
-                        <span className="text-xl">🚁</span>
-                    </motion.button>
-                )}
-            </div>
-
-            {/* Add Task Modal */}
+            {/* Modals */}
             {showAddTask && (
                 <ServerAddTaskModal
                     onClose={() => setShowAddTask(false)}
                     maxEnergy={maxEnergy}
                     currentEnergy={currentEnergy}
+                    totalFocusMinutes={totalFocusMinutes}
                 />
             )}
+
+            <ExtractionModal
+                isOpen={showExtraction}
+                onClose={() => setShowExtraction(false)}
+                onExtract={handleExtract}
+            />
         </div>
     );
 }

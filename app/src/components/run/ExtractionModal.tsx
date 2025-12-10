@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDailyXP, useTasks, useTotalFocusMinutes } from '../../store/useRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
 import { formatDuration } from '../../lib/utils';
+import { useServerTasks, useServerDailyXP } from '../../store/useServerRunStore';
 
 interface ExtractionModalProps {
     isOpen: boolean;
@@ -10,14 +10,17 @@ interface ExtractionModalProps {
 }
 
 export function ExtractionModal({ isOpen, onClose, onExtract }: ExtractionModalProps) {
-    const dailyXP = useDailyXP();
-    const tasks = useTasks();
-    const totalFocusMinutes = useTotalFocusMinutes();
+    const tasks = useServerTasks();
+    const dailyXP = useServerDailyXP();
     const { notification } = useHaptic();
 
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
     const failedTasks = tasks.filter(t => t.status === 'failed').length;
-    const pendingTasks = tasks.filter(t => t.status === 'pending').length;
+    const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'active').length;
+
+    const totalFocusMinutes = tasks
+        .filter(t => t.status === 'completed')
+        .reduce((sum, t) => sum + (t.duration || 0), 0);
 
     const handleExtract = () => {
         notification('success');
@@ -34,6 +37,7 @@ export function ExtractionModal({ isOpen, onClose, onExtract }: ExtractionModalP
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        onClick={onClose}
                     />
 
                     {/* Modal */}
@@ -95,13 +99,13 @@ export function ExtractionModal({ isOpen, onClose, onExtract }: ExtractionModalP
                             <div className="flex gap-3">
                                 <button
                                     onClick={onClose}
-                                    className="btn btn-secondary flex-1"
+                                    className="flex-1 py-3 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] font-medium"
                                 >
                                     Отмена
                                 </button>
                                 <button
                                     onClick={handleExtract}
-                                    className="btn btn-primary flex-1 glow-success"
+                                    className="flex-1 py-3 rounded-xl bg-[var(--accent-primary)] text-white font-bold"
                                 >
                                     🚁 Эвакуация
                                 </button>

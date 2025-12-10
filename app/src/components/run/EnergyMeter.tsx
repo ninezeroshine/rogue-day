@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
-import { useFocusEnergy, useMaxEnergy } from '../../store/useRunStore';
 import { getPercentage } from '../../lib/utils';
 
-export function EnergyMeter() {
-    const energy = useFocusEnergy();
-    const maxEnergy = useMaxEnergy();
-    const percentage = getPercentage(energy, maxEnergy);
+interface EnergyMeterProps {
+    current: number;
+    max: number;
+}
+
+export function EnergyMeter({ current, max }: EnergyMeterProps) {
+    const percentage = getPercentage(current, max);
 
     // Color based on energy level
     const getColor = () => {
@@ -15,14 +17,14 @@ export function EnergyMeter() {
     };
 
     return (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 bg-[var(--bg-card)] rounded-xl p-3 border border-[var(--border-default)]">
             <div className="flex items-center justify-between text-sm">
                 <span className="text-[var(--text-secondary)] flex items-center gap-1">
                     <span>⚡</span>
                     <span>Энергия</span>
                 </span>
                 <span className="font-mono font-bold" style={{ color: getColor() }}>
-                    {energy}/{maxEnergy}
+                    {current}/{max}
                 </span>
             </div>
 

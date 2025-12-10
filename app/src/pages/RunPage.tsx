@@ -200,13 +200,7 @@ export function RunPage() {
             <header className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <motion.span
-                            className="text-2xl"
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                        >
-                            ⚡
-                        </motion.span>
+                        <span className="text-2xl">⚡</span>
                         <div>
                             <h1 className="text-xl font-bold" style={{ color: 'var(--accent-primary)' }}>
                                 Ран активен
@@ -240,23 +234,12 @@ export function RunPage() {
                 <ServerTaskList tasks={tasks} />
             </main>
 
-            {/* Add task FAB - with glow animation */}
+            {/* Add task FAB */}
             <motion.button
                 onClick={() => setShowAddTask(true)}
                 className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-3xl font-bold shadow-lg flex items-center justify-center z-30 glow-success"
-                whileHover={{ scale: 1.15, rotate: 90 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                animate={{
-                    boxShadow: [
-                        '0 0 20px rgba(0, 255, 136, 0.4)',
-                        '0 0 40px rgba(0, 255, 136, 0.6)',
-                        '0 0 20px rgba(0, 255, 136, 0.4)',
-                    ],
-                }}
-                transition={{
-                    boxShadow: { duration: 2, repeat: Infinity },
-                    scale: { type: 'spring', stiffness: 400 },
-                }}
             >
                 +
             </motion.button>

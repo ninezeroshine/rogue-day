@@ -190,51 +190,37 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <motion.span
-                                    className="text-2xl"
-                                    animate={{ scale: [1, 1.2, 1] }}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                >
-                                    {tierEmoji}
-                                </motion.span>
+                                <span className="text-2xl animate-pulse">{tierEmoji}</span>
                                 <div>
                                     <div className="font-medium">{task.title}</div>
-                                    <motion.div
+                                    <div
                                         className="text-sm font-medium"
                                         style={{ color: tierColor }}
-                                        animate={{ opacity: [0.7, 1, 0.7] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
                                     >
                                         🔥 В процессе...
-                                    </motion.div>
+                                    </div>
                                 </div>
                             </div>
 
                             {task.use_timer && (
-                                <motion.div
+                                <div
                                     className="text-3xl font-mono font-bold"
                                     style={{ color: tierColor }}
-                                    key={timer.remaining}
-                                    initial={{ scale: 1.1 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 0.2 }}
                                 >
                                     {formatTimer(timer.remaining)}
-                                </motion.div>
+                                </div>
                             )}
                         </div>
 
                         {/* Timer progress bar */}
                         {task.use_timer && (
-                            <div className="h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--border-default)]">
-                                <motion.div
-                                    className="h-full rounded-full"
+                            <div className="h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full transition-all duration-1000 ease-linear"
                                     style={{
                                         backgroundColor: tierColor,
-                                        boxShadow: `0 0 10px ${tierColor}80`
+                                        width: `${timer.progress}%`
                                     }}
-                                    animate={{ width: `${timer.progress}%` }}
-                                    transition={{ duration: 0.3, ease: 'easeOut' }}
                                 />
                             </div>
                         )}
@@ -357,15 +343,10 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
 
     return (
         <motion.div
-            layout
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -100, scale: 0.9 }}
-            transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 25
-            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.2 }}
             className="card"
             style={getCardStyles()}
         >

@@ -63,9 +63,9 @@ export function useSync() {
         initialize();
     }, [initialize]);
 
-    // Get user display info
-    const displayName = state.user?.first_name || telegramUser?.first_name || 'Оператор';
-    const username = state.user?.username || telegramUser?.username || null;
+    // Get user display info - prioritize Telegram data, then server, then fallback
+    const displayName = telegramUser?.first_name || state.user?.first_name || 'Оператор';
+    const username = telegramUser?.username || state.user?.username || null;
     const photoUrl = telegramUser?.photo_url || null;
 
     // User stats from server
@@ -78,6 +78,14 @@ export function useSync() {
         best_streak: 0,
     };
 
+    // Debug info
+    console.log('Sync state:', {
+        isTMA,
+        telegramUser,
+        serverUser: state.user,
+        displayName,
+    });
+
     return {
         ...state,
         displayName,
@@ -85,6 +93,7 @@ export function useSync() {
         photoUrl,
         stats,
         isTMA,
+        telegramUser, // expose for debugging
         refetch: initialize,
     };
 }

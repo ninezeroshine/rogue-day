@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.api.router import api_router
+from app.database import engine, Base
+from app.models import User, Run, Task, Extraction  # Import models to register them
 
 
 @asynccontextmanager
@@ -11,6 +13,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     print("🚀 Starting Rogue-Day Backend...")
+    
+    # Create database tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("✅ Database tables created")
+    
     yield
     # Shutdown
     print("👋 Shutting down Rogue-Day Backend...")

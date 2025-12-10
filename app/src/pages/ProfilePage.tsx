@@ -1,15 +1,45 @@
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { useSync } from '../hooks/useSync';
 import { useUserStore, useUserSettings } from '../store/useUserStore';
-import { useHaptic } from '../hooks/useTelegram';
+import { useHaptic, useTelegram } from '../hooks/useTelegram';
 import { formatDuration } from '../lib/utils';
 import api from '../lib/api';
 
 export function ProfilePage() {
-    const { displayName, username, photoUrl, stats, isOnline, isTMA } = useSync();
+    const { displayName, username, stats, isOnline, isTMA, telegramUser } = useSync();
+    const { user: tgUser } = useTelegram();
     const localSettings = useUserSettings();
     const { updateSettings: updateLocalSettings } = useUserStore();
     const { notification } = useHaptic();
+
+    // Avatar state
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [avatarLoading, setAvatarLoading] = useState(true);
+
+    // Load avatar from server
+    useEffect(() => {
+        const loadAvatar = async () => {
+            const telegramId = tgUser?.id || telegramUser?.id;
+            if (!telegramId) {
+                setAvatarLoading(false);
+                return;
+            }
+
+            try {
+                const response = await api.avatar.getAvatar(telegramId);
+                if (response.photo_url) {
+                    setPhotoUrl(response.photo_url);
+                }
+            } catch (err) {
+                console.error('Failed to load avatar:', err);
+            } finally {
+                setAvatarLoading(false);
+            }
+        };
+
+        loadAvatar();
+    }, [tgUser?.id, telegramUser?.id]);
 
     const handleToggle = async (key: 'sounds' | 'haptics' | 'notifications') => {
         // Update local first
@@ -43,11 +73,14 @@ export function ProfilePage() {
             {/* Header / User info */}
             <header className="mb-6 text-center">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-[var(--border-default)] overflow-hidden bg-[var(--bg-card)]">
-                    {photoUrl ? (
+                    {avatarLoading ? (
+                        <div className="animate-pulse bg-[var(--bg-secondary)] w-full h-full" />
+                    ) : photoUrl ? (
                         <img
                             src={photoUrl}
                             alt={displayName}
                             className="w-full h-full object-cover"
+                            onError={() => setPhotoUrl(null)}
                         />
                     ) : (
                         <span className="text-3xl">👤</span>

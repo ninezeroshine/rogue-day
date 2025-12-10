@@ -221,9 +221,36 @@ export const syncApi = {
     },
 };
 
+// ===== AVATAR API =====
+
+export interface AvatarResponse {
+    photo_url: string | null;
+    width?: number;
+    height?: number;
+    error?: string;
+}
+
+export const avatarApi = {
+    /**
+     * Get user avatar URL via Bot API
+     */
+    getAvatar: async (telegramId: number): Promise<AvatarResponse> => {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/v1/avatar/${telegramId}`
+            );
+            return response.json();
+        } catch {
+            return { photo_url: null };
+        }
+    },
+};
+
 export default {
     user: userApi,
     run: runApi,
     task: taskApi,
     sync: syncApi,
+    avatar: avatarApi,
 };
+

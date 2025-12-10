@@ -3,10 +3,9 @@ import { motion } from 'framer-motion';
 import { useServerRunStore, useServerRunData, useServerDailyXP, useServerEnergy, useServerTasks } from '../store/useServerRunStore';
 import { useTelegram } from '../hooks/useTelegram';
 import { useSync } from '../hooks/useSync';
-import { EnergyMeter } from '../components/run/EnergyMeter';
-import { XPCounter } from '../components/run/XPCounter';
 import { ServerTaskList } from '../components/run/ServerTaskList';
 import { ServerAddTaskModal } from '../components/run/ServerAddTaskModal';
+import { getPercentage } from '../lib/utils';
 
 export function RunPage() {
     const { isReady } = useTelegram();
@@ -180,12 +179,33 @@ export function RunPage() {
                         {completedTasks}/{totalTasks} задач • {run.run_date}
                     </p>
                 </div>
-                <XPCounter xp={dailyXP} />
+                {/* Inline XP Counter */}
+                <div className="flex items-center gap-2">
+                    <span className="text-2xl">✨</span>
+                    <div className="flex flex-col">
+                        <span className="text-xs text-[var(--text-muted)]">XP</span>
+                        <span className="text-xl font-bold font-mono" style={{ color: 'var(--accent-xp)' }}>
+                            {dailyXP}
+                        </span>
+                    </div>
+                </div>
             </header>
 
-            {/* Energy meter */}
+            {/* Inline Energy Meter */}
             <div className="mb-6">
-                <EnergyMeter current={energy.current} max={energy.max} />
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-[var(--text-secondary)]">⚡ Энергия</span>
+                        <span className="font-mono font-bold">{energy.current}/{energy.max}</span>
+                    </div>
+                    <div className="h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--border-default)]">
+                        <motion.div
+                            className="h-full rounded-full bg-[var(--energy-full)]"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${getPercentage(energy.current, energy.max)}%` }}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Task list */}

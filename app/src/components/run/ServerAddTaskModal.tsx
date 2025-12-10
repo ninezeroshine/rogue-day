@@ -10,7 +10,9 @@ interface ServerAddTaskModalProps {
     currentEnergy: number;
 }
 
-export function ServerAddTaskModal({ onClose, maxEnergy, currentEnergy }: ServerAddTaskModalProps) {
+const TIER_ICONS = { 1: '🌱', 2: '⚡', 3: '🔥' };
+
+export function ServerAddTaskModal({ onClose, currentEnergy }: ServerAddTaskModalProps) {
     const { addTask } = useServerRunStore();
     const { impact } = useHaptic();
 
@@ -95,11 +97,11 @@ export function ServerAddTaskModal({ onClose, maxEnergy, currentEnergy }: Server
                                         onClick={() => setTier(t)}
                                         disabled={!affordable}
                                         className={`p-3 rounded-xl border-2 transition-all ${tier === t
-                                                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
-                                                : 'border-[var(--border-default)]'
+                                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
+                                            : 'border-[var(--border-default)]'
                                             } ${!affordable ? 'opacity-40' : ''}`}
                                     >
-                                        <div className="text-lg">{cfg.icon}</div>
+                                        <div className="text-lg">{TIER_ICONS[t]}</div>
                                         <div className="text-sm font-medium">{cfg.name}</div>
                                         <div className="text-xs text-[var(--text-muted)]">
                                             {cfg.energyCost > 0 ? `-${cfg.energyCost}⚡` : 'Free'}
@@ -121,8 +123,8 @@ export function ServerAddTaskModal({ onClose, maxEnergy, currentEnergy }: Server
                                     key={d}
                                     onClick={() => setDuration(d)}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${duration === d
-                                            ? 'bg-[var(--accent-primary)] text-white'
-                                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                                        ? 'bg-[var(--accent-primary)] text-white'
+                                        : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'
                                         }`}
                                 >
                                     {d}м

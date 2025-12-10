@@ -5,7 +5,7 @@ from app.config import settings
 
 # Create async engine
 engine = create_async_engine(
-    settings.database_url,
+    settings.async_database_url,
     echo=False,  # Set to True for SQL logging
     future=True,
 )

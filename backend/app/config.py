@@ -12,8 +12,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     
-    # Database
-    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/rogue_day"
+    # Database (Railway provides postgresql://, we need postgresql+asyncpg://)
+    database_url: str = "postgresql://user:password@localhost:5432/rogue_day"
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     cors_origins: str = '["https://rogue-day.vercel.app","http://127.0.0.1:5173"]'
     
     @property
+    def async_database_url(self) -> str:
+        """Convert standard postgresql:// URL to asyncpg format."""
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+    
+    @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from JSON string."""
         try:
@@ -38,3 +46,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

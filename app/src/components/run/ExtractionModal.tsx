@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRunStore, useDailyXP, useTasks, useTotalFocusMinutes } from '../../store/useRunStore';
+import { useDailyXP, useTasks, useTotalFocusMinutes } from '../../store/useRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
 import { formatDuration } from '../../lib/utils';
 

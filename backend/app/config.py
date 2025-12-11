@@ -37,6 +37,15 @@ class Settings(BaseSettings):
         return url
     
     @property
+    def sync_database_url(self) -> str:
+        """Return sync database URL for Alembic migrations."""
+        url = self.database_url
+        # Remove async driver if present
+        if "asyncpg" in url:
+            return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return url
+    
+    @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from JSON string."""
         try:

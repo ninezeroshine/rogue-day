@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout';
 import { RunPage } from './pages/RunPage';
 import { JournalPage } from './pages/JournalPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { TemplatesPage } from './pages/TemplatesPage';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/" element={<RunPage />} />
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

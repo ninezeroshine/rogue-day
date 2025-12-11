@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useServerRunStore, useServerRun, useServerIsLoading, useServerError, useServerDailyXP, useServerTasks, useServerCurrentEnergy, useServerMaxEnergy } from '../store/useServerRunStore';
 import { useTelegram } from '../hooks/useTelegram';
@@ -7,6 +7,9 @@ import { ServerAddTaskModal } from '../components/run/ServerAddTaskModal';
 import { ExtractionModal } from '../components/run/ExtractionModal';
 import { EnergyMeter } from '../components/run/EnergyMeter';
 import { XPCounter } from '../components/run/XPCounter';
+import { QuickStartCard } from '../components/run/QuickStartCard';
+import { PresetAppliedToast } from '../components/run/PresetAppliedToast';
+import type { PresetApplyResponse } from '../lib/api';
 
 export function RunPage() {
     const { isReady, user } = useTelegram();
@@ -20,10 +23,13 @@ export function RunPage() {
     const currentEnergy = useServerCurrentEnergy();
     const maxEnergy = useServerMaxEnergy();
 
-    // Calculate total focus minutes from completed tasks
-    const totalFocusMinutes = tasks
-        .filter(t => t.status === 'completed')
-        .reduce((sum, t) => sum + (t.duration || 0), 0);
+    // Calculate total focus minutes from completed tasks (memoized)
+    const totalFocusMinutes = useMemo(() =>
+        tasks
+            .filter(t => t.status === 'completed')
+            .reduce((sum, t) => sum + (t.duration || 0), 0),
+        [tasks]
+    );
 
     // Get actions directly from store.getState() to avoid re-render triggers
     const loadCurrentRun = useCallback(() => {
@@ -45,6 +51,25 @@ export function RunPage() {
         tasksCompleted: number;
         totalFocusMinutes: number;
     } | null>(null);
+
+    // Preset applied toast state
+    const [presetToast, setPresetToast] = useState<{
+        visible: boolean;
+        message: string;
+        tasksCreated: number;
+    }>({ visible: false, message: '', tasksCreated: 0 });
+
+    const handlePresetApplied = useCallback((result: PresetApplyResponse) => {
+        setPresetToast({
+            visible: true,
+            message: result.message,
+            tasksCreated: result.tasks_created,
+        });
+    }, []);
+
+    const closePresetToast = useCallback(() => {
+        setPresetToast(prev => ({ ...prev, visible: false }));
+    }, []);
 
     // Load current run on mount
     useEffect(() => {
@@ -229,6 +254,11 @@ export function RunPage() {
                 </div>
             </header>
 
+            {/* Quick Start presets - show when no tasks yet */}
+            {tasks.length === 0 && (
+                <QuickStartCard onApplied={handlePresetApplied} />
+            )}
+
             {/* Task list */}
             <main className="flex-1 overflow-y-auto pb-20">
                 <ServerTaskList tasks={tasks} />
@@ -258,6 +288,14 @@ export function RunPage() {
                 isOpen={showExtraction}
                 onClose={() => setShowExtraction(false)}
                 onExtract={handleExtract}
+            />
+
+            {/* Preset applied toast */}
+            <PresetAppliedToast
+                visible={presetToast.visible}
+                message={presetToast.message}
+                tasksCreated={presetToast.tasksCreated}
+                onClose={closePresetToast}
             />
         </div>
     );

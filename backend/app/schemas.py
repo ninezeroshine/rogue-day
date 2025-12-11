@@ -127,6 +127,75 @@ class ExtractionResponse(BaseModel):
         from_attributes = True
 
 
+# ===== TASK TEMPLATE SCHEMAS =====
+
+class TaskTemplateBase(BaseModel):
+    title: str
+    tier: int
+    duration: int
+    use_timer: bool = False
+    category: Optional[str] = None
+
+
+class TaskTemplateCreate(TaskTemplateBase):
+    """Create template manually."""
+    source: str = "manual"
+
+
+class TaskTemplateFromTask(BaseModel):
+    """Create template from existing task."""
+    task_id: int
+    category: Optional[str] = None
+
+
+class TaskTemplateResponse(TaskTemplateBase):
+    id: int
+    source: str
+    times_used: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# ===== PRESET SCHEMAS =====
+
+class PresetBase(BaseModel):
+    name: str
+    emoji: Optional[str] = None
+    is_favorite: bool = False
+
+
+class PresetCreate(PresetBase):
+    """Create preset with optional initial templates."""
+    template_ids: List[int] = []
+
+
+class PresetUpdate(BaseModel):
+    """Update preset (name, emoji, templates)."""
+    name: Optional[str] = None
+    emoji: Optional[str] = None
+    is_favorite: Optional[bool] = None
+    template_ids: Optional[List[int]] = None
+
+
+class PresetResponse(PresetBase):
+    id: int
+    templates: List[TaskTemplateResponse] = []
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class PresetApplyResponse(BaseModel):
+    """Response when applying a preset."""
+    tasks_created: int
+    tasks_skipped: int  # Due to energy shortage
+    total_energy_cost: int
+    message: str
+
+
 # ===== TELEGRAM AUTH =====
 
 class TelegramAuthData(BaseModel):

@@ -124,3 +124,81 @@ class Extraction(Base):
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+class TaskTemplate(Base):
+    """
+    Reusable task template — user's saved task configuration.
+    """
+    __tablename__ = "task_templates"
+    __table_args__ = (
+        Index('ix_task_templates_user', 'user_id'),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # Template data (mirrors Task fields)
+    title = Column(String(255), nullable=False)
+    tier = Column(Integer, nullable=False)  # 1, 2, 3
+    duration = Column(Integer, nullable=False)  # minutes
+    use_timer = Column(Boolean, default=False)
+    category = Column(String(50), nullable=True)  # "work", "health", "study", etc.
+    
+    # Meta
+    source = Column(String(20), default="manual")  # "manual" or "from_task"
+    times_used = Column(Integer, default=0)  # Usage counter for analytics
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User")
+    preset_links = relationship("PresetTemplate", back_populates="template", cascade="all, delete-orphan")
+
+
+class Preset(Base):
+    """
+    Named collection of task templates for quick daily setup.
+    """
+    __tablename__ = "presets"
+    __table_args__ = (
+        Index('ix_presets_user', 'user_id'),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    name = Column(String(100), nullable=False)  # "Продуктивное утро"
+    emoji = Column(String(10), nullable=True)  # "🌅"
+    is_favorite = Column(Boolean, default=False)  # Show first in list
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User")
+    template_links = relationship("PresetTemplate", back_populates="preset", cascade="all, delete-orphan", order_by="PresetTemplate.order")
+
+
+class PresetTemplate(Base):
+    """
+    Junction table: Preset <-> TaskTemplate (many-to-many with order).
+    """
+    __tablename__ = "preset_templates"
+    __table_args__ = (
+        Index('ix_preset_templates_preset', 'preset_id'),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    preset_id = Column(Integer, ForeignKey("presets.id", ondelete="CASCADE"), nullable=False)
+    template_id = Column(Integer, ForeignKey("task_templates.id", ondelete="CASCADE"), nullable=False)
+    
+    order = Column(Integer, default=0)  # Order within preset
+    
+    # Relationships
+    preset = relationship("Preset", back_populates="template_links")
+    template = relationship("TaskTemplate", back_populates="preset_links")
+
+

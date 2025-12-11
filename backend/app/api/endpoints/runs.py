@@ -52,10 +52,20 @@ async def start_new_run(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Start a new run for user."""
-    # Check for existing active run
+    """
+    Start a new run for user.
+    
+    Uses SELECT FOR UPDATE to prevent race condition where two simultaneous
+    requests could both pass the "no active run" check.
+    """
+    from sqlalchemy.exc import IntegrityError
+    
+    # Check for existing active run WITH lock to prevent race condition
+    # FOR UPDATE locks the rows until the transaction commits
     existing = await db.execute(
-        select(Run).where(Run.user_id == user.id, Run.status == RunStatus.ACTIVE)
+        select(Run)
+        .where(Run.user_id == user.id, Run.status == RunStatus.ACTIVE)
+        .with_for_update()
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Active run already exists")
@@ -74,8 +84,14 @@ async def start_new_run(
         status=RunStatus.ACTIVE,
     )
     db.add(run)
-    await db.flush()
-    await db.refresh(run)
+    
+    try:
+        await db.flush()
+        await db.refresh(run)
+    except IntegrityError:
+        # Another request beat us to it (backup safety)
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Active run already exists")
     
     return RunResponse(
         id=run.id,
@@ -114,8 +130,21 @@ async def extract_run(
         raise HTTPException(status_code=400, detail="Run already extracted")
     
     # Calculate stats
-    completed = [t for t in run.tasks if t.status.value == "completed"]
-    failed = [t for t in run.tasks if t.status.value == "failed"]
+    # First, auto-fail any ACTIVE tasks (user abandoned them)
+    from app.models import TaskStatus
+    
+    active_tasks = [t for t in run.tasks if t.status == TaskStatus.ACTIVE]
+    for task in active_tasks:
+        task.status = TaskStatus.FAILED
+        task.completed_at = datetime.utcnow()
+        # T3 penalty: lose 10% of daily XP
+        if task.tier == 3:
+            penalty = int(run.daily_xp * 0.1)
+            run.daily_xp = max(0, run.daily_xp - penalty)
+    
+    # Now calculate final stats
+    completed = [t for t in run.tasks if t.status == TaskStatus.COMPLETED]
+    failed = [t for t in run.tasks if t.status == TaskStatus.FAILED]
     
     # Create extraction record
     extraction = Extraction(

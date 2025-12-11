@@ -5,6 +5,7 @@ import { useHaptic } from '../../hooks/useTelegram';
 import { useTimer } from '../../hooks/useTimer';
 import { getTierEmoji, getTierColor, TIER_CONFIG } from '../../lib/constants';
 import { formatTimer, formatDuration } from '../../lib/utils';
+import api from '../../lib/api';
 import type { TaskResponse } from '../../lib/api';
 import type { TierLevel } from '../../store/types';
 
@@ -39,6 +40,7 @@ function calculateRemainingSeconds(task: TaskResponse): number {
 export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
     const { impact, notification } = useHaptic();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [savedAsTemplate, setSavedAsTemplate] = useState(false);
 
     // Get actions directly to avoid re-renders
     const startTaskAction = useCallback(() => {
@@ -263,7 +265,7 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                     <motion.div
                         className="flex items-center justify-between"
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.7 }}
+                        animate={{ opacity: 0.8 }}
                     >
                         <div className="flex items-center gap-3">
                             <span className="text-2xl">✅</span>
@@ -279,6 +281,31 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Save as template button */}
+                        {!savedAsTemplate ? (
+                            <motion.button
+                                onClick={async () => {
+                                    try {
+                                        await api.template.createFromTask(task.id);
+                                        setSavedAsTemplate(true);
+                                        notification('success');
+                                    } catch {
+                                        notification('error');
+                                    }
+                                }}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] transition-colors"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                💾 Шаблон
+                            </motion.button>
+                        ) : (
+                            <span className="text-xs text-[var(--accent-primary)] flex items-center gap-1">
+                                <span>✓</span>
+                                <span>Сохранено</span>
+                            </span>
+                        )}
                     </motion.div>
                 );
 

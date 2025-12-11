@@ -246,11 +246,107 @@ export const avatarApi = {
     },
 };
 
+// ===== TEMPLATE API =====
+
+export interface TaskTemplateResponse {
+    id: number;
+    title: string;
+    tier: number;
+    duration: number;
+    use_timer: boolean;
+    category: string | null;
+    source: string;
+    times_used: number;
+    created_at: string;
+}
+
+export interface TaskTemplateCreate {
+    title: string;
+    tier: number;
+    duration: number;
+    use_timer: boolean;
+    category?: string;
+}
+
+export const templateApi = {
+    list: async (category?: string): Promise<TaskTemplateResponse[]> => {
+        const params = category ? `?category=${category}` : '';
+        return apiRequest(`/api/v1/templates/${params}`);
+    },
+
+    create: async (data: TaskTemplateCreate): Promise<TaskTemplateResponse> => {
+        return apiRequest('/api/v1/templates/', { method: 'POST', body: data });
+    },
+
+    createFromTask: async (taskId: number, category?: string): Promise<TaskTemplateResponse> => {
+        return apiRequest('/api/v1/templates/from-task', {
+            method: 'POST',
+            body: { task_id: taskId, category },
+        });
+    },
+
+    delete: async (id: number): Promise<void> => {
+        return apiRequest(`/api/v1/templates/${id}`, { method: 'DELETE' });
+    },
+};
+
+// ===== PRESET API =====
+
+export interface PresetResponse {
+    id: number;
+    name: string;
+    emoji: string | null;
+    is_favorite: boolean;
+    templates: TaskTemplateResponse[];
+    created_at: string;
+}
+
+export interface PresetCreate {
+    name: string;
+    emoji?: string;
+    is_favorite?: boolean;
+    template_ids?: number[];
+}
+
+export interface PresetApplyResponse {
+    tasks_created: number;
+    tasks_skipped: number;
+    total_energy_cost: number;
+    message: string;
+}
+
+export const presetApi = {
+    list: async (): Promise<PresetResponse[]> => {
+        return apiRequest('/api/v1/presets/');
+    },
+
+    create: async (data: PresetCreate): Promise<PresetResponse> => {
+        return apiRequest('/api/v1/presets/', { method: 'POST', body: data });
+    },
+
+    get: async (id: number): Promise<PresetResponse> => {
+        return apiRequest(`/api/v1/presets/${id}`);
+    },
+
+    update: async (id: number, data: Partial<PresetCreate>): Promise<PresetResponse> => {
+        return apiRequest(`/api/v1/presets/${id}`, { method: 'PATCH', body: data });
+    },
+
+    apply: async (presetId: number): Promise<PresetApplyResponse> => {
+        return apiRequest(`/api/v1/presets/${presetId}/apply`, { method: 'POST' });
+    },
+
+    delete: async (id: number): Promise<void> => {
+        return apiRequest(`/api/v1/presets/${id}`, { method: 'DELETE' });
+    },
+};
+
 export default {
     user: userApi,
     run: runApi,
     task: taskApi,
     sync: syncApi,
     avatar: avatarApi,
+    template: templateApi,
+    preset: presetApi,
 };
-

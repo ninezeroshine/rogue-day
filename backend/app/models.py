@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum as SQLEnum, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -54,6 +54,10 @@ class User(Base):
 class Run(Base):
     """Daily run (game session)."""
     __tablename__ = "runs"
+    __table_args__ = (
+        Index('ix_runs_user_status', 'user_id', 'status'),
+        Index('ix_runs_user_date', 'user_id', 'run_date'),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -78,6 +82,9 @@ class Run(Base):
 class Task(Base):
     """Task within a run."""
     __tablename__ = "tasks"
+    __table_args__ = (
+        Index('ix_tasks_run_status', 'run_id', 'status'),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     run_id = Column(Integer, ForeignKey("runs.id", ondelete="CASCADE"), nullable=False)
@@ -116,3 +123,4 @@ class Extraction(Base):
     
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+

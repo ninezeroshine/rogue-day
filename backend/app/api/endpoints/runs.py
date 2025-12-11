@@ -2,30 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from app.database import get_db
 from app.models import Run, User, Task, Extraction, RunStatus
 from app.schemas import RunResponse, RunCreate, ExtractionResponse, TaskResponse
+from app.api.dependencies import get_current_user
+from app.core.game_config import GAME_CONFIG
 
 router = APIRouter()
 
 
 @router.get("/current", response_model=RunResponse)
 async def get_current_run(
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get current active run for user."""
-    # Get user
-    user_result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
-    )
-    user = user_result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     # Get active run
     today = date.today().isoformat()
     result = await db.execute(
@@ -56,19 +49,10 @@ async def get_current_run(
 
 @router.post("/", response_model=RunResponse)
 async def start_new_run(
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Start a new run for user."""
-    # Get user
-    user_result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
-    )
-    user = user_result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     # Check for existing active run
     existing = await db.execute(
         select(Run).where(Run.user_id == user.id, Run.status == RunStatus.ACTIVE)
@@ -76,14 +60,16 @@ async def start_new_run(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Active run already exists")
     
-    # Create new run
+    # Create new run with values from GAME_CONFIG
     today = date.today().isoformat()
+    base_energy = GAME_CONFIG["BASE_MAX_ENERGY"]
+    
     run = Run(
         user_id=user.id,
         run_date=today,
         daily_xp=0,
-        focus_energy=50,
-        max_energy=50,
+        focus_energy=base_energy,
+        max_energy=base_energy,
         total_focus_minutes=0,
         status=RunStatus.ACTIVE,
     )
@@ -109,19 +95,10 @@ async def start_new_run(
 @router.post("/{run_id}/extract", response_model=ExtractionResponse)
 async def extract_run(
     run_id: int,
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Extract (finish) a run."""
-    # Get user
-    user_result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
-    )
-    user = user_result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     # Get run with tasks
     result = await db.execute(
         select(Run)
@@ -160,7 +137,23 @@ async def extract_run(
     user.total_extractions += 1
     user.total_tasks_completed += len(completed)
     user.total_focus_minutes += run.total_focus_minutes
-    user.current_streak += 1
+    
+    # Streak logic: check if there was a run yesterday
+    today = date.today()
+    if user.last_run_at:
+        last_run_date = user.last_run_at.date()
+        yesterday = today - timedelta(days=1)
+        
+        if last_run_date >= yesterday:
+            # Ran yesterday or today (same day extraction) - continue streak
+            user.current_streak += 1
+        else:
+            # Missed a day - reset streak
+            user.current_streak = 1
+    else:
+        # First run ever
+        user.current_streak = 1
+    
     user.best_streak = max(user.best_streak, user.current_streak)
     user.last_run_at = datetime.utcnow()
     
@@ -176,3 +169,4 @@ async def extract_run(
         total_focus_minutes=extraction.total_focus_minutes,
         created_at=extraction.created_at,
     )
+

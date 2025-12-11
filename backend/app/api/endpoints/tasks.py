@@ -6,33 +6,19 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Task, Run, User, TaskStatus, RunStatus
 from app.schemas import TaskResponse, TaskCreate
-
-# Tier configuration (same as frontend)
-TIER_CONFIG = {
-    1: {"energy_cost": 0, "base_xp": 15, "can_fail": False},
-    2: {"energy_cost": 5, "base_xp": 65, "can_fail": True},
-    3: {"energy_cost": 15, "base_xp": 175, "can_fail": True},
-}
+from app.api.dependencies import get_current_user
+from app.core.game_config import TIER_CONFIG, calculate_xp
 
 router = APIRouter()
 
 
 @router.post("/", response_model=TaskResponse)
 async def create_task(
-    telegram_id: int,
     task_data: TaskCreate,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new task in current run."""
-    # Get user
-    user_result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
-    )
-    user = user_result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     # Get active run
     run_result = await db.execute(
         select(Run).where(Run.user_id == user.id, Run.status == RunStatus.ACTIVE)
@@ -51,10 +37,8 @@ async def create_task(
     if run.focus_energy < config["energy_cost"]:
         raise HTTPException(status_code=400, detail="Not enough energy")
     
-    # Calculate XP
-    duration_multiplier = task_data.duration / 5  # Simplified
-    timer_multiplier = 1.0 if task_data.use_timer else 0.8
-    xp_earned = int(config["base_xp"] * duration_multiplier * timer_multiplier)
+    # Calculate XP using centralized function
+    xp_earned = calculate_xp(task_data.tier, task_data.duration, task_data.use_timer)
     
     # Spend energy
     run.focus_energy -= config["energy_cost"]
@@ -80,11 +64,11 @@ async def create_task(
 @router.post("/{task_id}/start", response_model=TaskResponse)
 async def start_task(
     task_id: int,
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Start a task."""
-    task = await _get_user_task(task_id, telegram_id, db)
+    task = await _get_user_task(task_id, user.id, db)
     
     if task.status != TaskStatus.PENDING:
         raise HTTPException(status_code=400, detail="Task already started")
@@ -101,11 +85,11 @@ async def start_task(
 @router.post("/{task_id}/complete", response_model=TaskResponse)
 async def complete_task(
     task_id: int,
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Complete a task."""
-    task = await _get_user_task(task_id, telegram_id, db)
+    task = await _get_user_task(task_id, user.id, db)
     
     if task.status not in [TaskStatus.PENDING, TaskStatus.ACTIVE]:
         raise HTTPException(status_code=400, detail="Task already finished")
@@ -113,6 +97,10 @@ async def complete_task(
     # Get run
     run_result = await db.execute(select(Run).where(Run.id == task.run_id))
     run = run_result.scalar_one()
+    
+    # Verify run is still active
+    if run.status != RunStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Run is not active")
     
     # Add XP
     run.daily_xp += task.xp_earned
@@ -136,11 +124,11 @@ async def complete_task(
 @router.post("/{task_id}/fail", response_model=TaskResponse)
 async def fail_task(
     task_id: int,
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Fail a task."""
-    task = await _get_user_task(task_id, telegram_id, db)
+    task = await _get_user_task(task_id, user.id, db)
     
     config = TIER_CONFIG.get(task.tier)
     if not config or not config["can_fail"]:
@@ -173,11 +161,11 @@ async def fail_task(
 @router.delete("/{task_id}")
 async def delete_task(
     task_id: int,
-    telegram_id: int,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a pending task."""
-    task = await _get_user_task(task_id, telegram_id, db)
+    task = await _get_user_task(task_id, user.id, db)
     
     if task.status != TaskStatus.PENDING:
         raise HTTPException(status_code=400, detail="Can only delete pending tasks")
@@ -193,20 +181,11 @@ async def delete_task(
     return {"status": "deleted"}
 
 
-async def _get_user_task(task_id: int, telegram_id: int, db: AsyncSession) -> Task:
+async def _get_user_task(task_id: int, user_id: int, db: AsyncSession) -> Task:
     """Helper to get task and verify ownership."""
-    # Get user
-    user_result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
-    )
-    user = user_result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     # Get task with run
     result = await db.execute(
-        select(Task).join(Run).where(Task.id == task_id, Run.user_id == user.id)
+        select(Task).join(Run).where(Task.id == task_id, Run.user_id == user_id)
     )
     task = result.scalar_one_or_none()
     
@@ -214,3 +193,4 @@ async def _get_user_task(task_id: int, telegram_id: int, db: AsyncSession) -> Ta
         raise HTTPException(status_code=404, detail="Task not found")
     
     return task
+

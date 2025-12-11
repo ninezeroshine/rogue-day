@@ -3,18 +3,27 @@ from typing import Optional
 import hashlib
 import hmac
 import json
+import time
 from urllib.parse import parse_qs
 
 from app.config import settings
 from app.schemas import TelegramAuthData
+from app.core.game_config import GAME_CONFIG
 
 router = APIRouter()
+
+# Auth expiration time from config
+AUTH_EXPIRATION_SECONDS = GAME_CONFIG.get("AUTH_EXPIRATION_SECONDS", 86400)
 
 
 def validate_telegram_data(init_data: str) -> Optional[dict]:
     """
     Validate Telegram WebApp initData.
     Returns user data if valid, None otherwise.
+    
+    Security checks:
+        1. HMAC-SHA256 signature verification
+        2. auth_date expiration (24h max)
     """
     try:
         parsed = parse_qs(init_data)
@@ -23,6 +32,12 @@ def validate_telegram_data(init_data: str) -> Optional[dict]:
         received_hash = parsed.get('hash', [None])[0]
         if not received_hash:
             return None
+        
+        # Check auth_date expiration
+        auth_date_str = parsed.get('auth_date', ['0'])[0]
+        auth_date = int(auth_date_str)
+        if time.time() - auth_date > AUTH_EXPIRATION_SECONDS:
+            return None  # Expired initData
         
         # Build data check string
         data_check_arr = []

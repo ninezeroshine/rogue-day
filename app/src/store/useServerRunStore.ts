@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 import type { RunResponse, TaskResponse, TaskCreate } from '../lib/api';
+import type { TierLevel } from './types';
+import { GAME_CONFIG } from '../lib/constants';
 
 /**
  * Server-synced run store.
@@ -30,6 +32,7 @@ interface ServerRunState {
 
     // Helpers
     refreshRun: () => Promise<void>;
+    isTierUnlocked: (tier: TierLevel) => boolean;
 }
 
 export const useServerRunStore = create<ServerRunState>((set, get) => ({
@@ -149,6 +152,12 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
         } catch {
             // Ignore - might not have active run
         }
+    },
+
+    isTierUnlocked: (tier: TierLevel) => {
+        const totalFocusMinutes = get().run?.total_focus_minutes ?? 0;
+        const unlockThreshold = GAME_CONFIG.TIER_UNLOCK[tier];
+        return totalFocusMinutes >= unlockThreshold;
     },
 }));
 

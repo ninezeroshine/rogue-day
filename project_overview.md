@@ -31,7 +31,7 @@
 | **React** | 18.x | UI Library |
 | **Vite** | 5.x | Build tool, HMR |
 | **TypeScript** | 5.x | Типизация |
-| **Zustand** | 4.x | State management (2 store: local + server) |
+| **Zustand** | 5.x | State management (server-synced) |
 | **Framer Motion** | 11.x | Анимации (AnimatePresence, layout) |
 | **Telegram WebApp SDK** | - | Mini App API (`window.Telegram.WebApp`) |
 
@@ -75,7 +75,7 @@ rogue-day/
 │   │   │   └── JournalPage.tsx   # History
 │   │   └── store/
 │   │       ├── useRunStore.ts    # Local-first state (persist)
-│   │       └── useServerRunStore.ts  # Server-synced state
+│   │       └── useServerRunStore.ts  # Server-synced state (единственный store)
 │   └── vite.config.ts
 │
 └── backend/                      # Backend (FastAPI)
@@ -131,7 +131,7 @@ PENDING → [start] → ACTIVE → [complete/fail] → COMPLETED/FAILED
 3. Backend валидирует HMAC-SHA256 с bot_token
 4. Извлекает `user.id` из parsed data
 
-**⚠️ Текущая проблема:** `telegram_id` также передаётся как query param и не всегда сверяется с initData.
+**✅ Исправлено:** Все эндпоинты теперь используют `get_current_user` dependency, которая валидирует `initData` через HMAC-SHA256 и проверяет `auth_date` (24h expiration).
 
 ---
 
@@ -258,10 +258,25 @@ startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 
 ---
 
-## ⚠️ Известные проблемы (см. code_review.md)
+## ⚠️ Исправленные проблемы (из code_review.md)
 
-1. 🔴 Auth: telegram_id без валидации initData
-2. 🔴 Бизнес-логика в HTTP handlers
-3. 🟠 Дублирование TIER_CONFIG (frontend + backend)
-4. 🟠 Два несинхронизированных Zustand store
-5. 🟡 Нет DB индексов для частых запросов
+| Проблема | Статус | Решение |
+|----------|--------|---------|
+| 🔴 Auth: telegram_id без валидации | ✅ **Исправлено** | `get_current_user` dependency с HMAC |
+| 🔴 XP расчёт `duration/5` | ✅ **Исправлено** | `duration/duration_min` |
+| 🔴 Streak всегда +1 | ✅ **Исправлено** | Проверка `last_run_at` |
+| 🟠 Дублирование TIER_CONFIG | ✅ **Исправлено** | Централизованный `game_config.py` |
+| 🟠 Два Zustand store | ✅ **Исправлено** | Удалён `useRunStore`, остался `useServerRunStore` |
+| 🟡 Нет DB индексов | ✅ **Исправлено** | Добавлены `ix_runs_*`, `ix_tasks_*` |
+| 🟢 OpenAPI codegen | ✅ **Исправлено** | `npm run generate:api` |
+
+---
+
+## 🔮 Roadmap (запланировано)
+
+1. **Boss Fights** — коллективные цели, урон за T3 задачи (потребует Event-driven)
+2. **Co-op Raids** — групповые челленджи
+3. **Loot System** — награды за стрики
+4. **Achievements** — бейджи
+5. **Analytics Dashboard** — статистика продуктивности
+

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:api": "openapi-typescript https://rogue-day-production.up.railway.app/openapi.json -o src/lib/api-types.generated.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
@@ -33,7 +34,8 @@
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "openapi-typescript": "^7.0.0"
   },
   "optionalDependencies": {
     "@esbuild/win32-x64": "^0.27.1"

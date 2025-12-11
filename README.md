@@ -24,35 +24,47 @@
 ## 🛠️ Стек
 
 ### Frontend (Telegram Mini App)
-- React 18 + TypeScript + Vite
-- Tailwind CSS
-- Zustand (state management)
+- React 19 + TypeScript + Vite
+- Tailwind CSS v4
+- Zustand (server-synced state)
 - Framer Motion (анимации)
+- OpenAPI TypeScript codegen
 
 ### Backend
 - FastAPI + Python 3.12
 - PostgreSQL (Railway)
-- SQLAlchemy (async)
+- SQLAlchemy 2.x (async)
+- Secure Telegram auth (HMAC-SHA256)
+
+## 🔐 Безопасность
+
+- ✅ Telegram `initData` валидация через HMAC-SHA256
+- ✅ Проверка `auth_date` (24h expiration)
+- ✅ Dependency Injection через `get_current_user`
+- ✅ Составные индексы БД для производительности
 
 ## 📂 Структура
 
 ```
-rouge_like_todo/
+rogue-day/
 ├── app/                    # Frontend (TMA)
 │   ├── src/
 │   │   ├── components/     # UI компоненты
 │   │   ├── pages/          # Страницы (Run, Journal, Profile)
-│   │   ├── store/          # Zustand stores
-│   │   ├── hooks/          # React hooks
-│   │   └── lib/            # Утилиты и API
+│   │   ├── store/          # Zustand server-synced store
+│   │   ├── hooks/          # React hooks (useTelegram, useTimer)
+│   │   └── lib/            # API client + auto-generated types
 │   └── vercel.json         # SPA routing config
 │
 ├── backend/                # Backend (FastAPI)
 │   ├── app/
-│   │   ├── api/endpoints/  # REST API
+│   │   ├── api/
+│   │   │   ├── endpoints/  # REST API routes
+│   │   │   └── dependencies.py  # Auth dependency
+│   │   ├── core/           # Game config (TIER_CONFIG)
 │   │   ├── models.py       # SQLAlchemy models
 │   │   └── main.py         # FastAPI app
-│   └── railway.toml        # Railway config
+│   └── railway.toml        # Railway config (auto-migrations)
 │
 └── README.md
 ```
@@ -64,8 +76,11 @@ rouge_like_todo/
 cd app
 npm install
 npm run dev
+# Открыть: http://127.0.0.1:5173
+
+# Сгенерировать типы из OpenAPI:
+npm run generate:api
 ```
-Открыть: http://127.0.0.1:5173
 
 ### Backend
 ```bash
@@ -74,17 +89,23 @@ python -m venv venv
 .\venv\Scripts\activate  # Windows
 pip install -e .
 cp .env.example .env
-# Настроить .env
+
+# Добавить в .env для dev-режима:
+ALLOW_DEV_MODE=true
+
 uvicorn app.main:app --reload
+# Открыть: http://127.0.0.1:8000
 ```
-Открыть: http://127.0.0.1:8000
 
-## ⚠️ Известные ограничения
+## 📊 Игровые механики
 
-- Telegram user data не подтягивается корректно (в разработке)
-- Аватар пользователя недоступен (ограничение Telegram API)
-- Синхронизация работает частично
+| Tier | Название | Длительность | Энергия | Базовый XP | Провал |
+|------|----------|--------------|---------|------------|--------|
+| T1 | Разминка | 2-5 мин | 0 | 15 | Невозможен |
+| T2 | Рутина | 10-15 мин | 5 | 65 | -энергия |
+| T3 | Фокус | 25-30 мин | 15 | 175 | -10% XP |
 
 ## 📄 Лицензия
 
 MIT
+

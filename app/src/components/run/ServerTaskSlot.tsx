@@ -290,7 +290,11 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                                         await api.template.createFromTask(task.id);
                                         setSavedAsTemplate(true);
                                         notification('success');
-                                    } catch {
+                                    } catch (err) {
+                                        console.error('Failed to save as template:', err);
+                                        // Show alert for debugging in Telegram
+                                        const errorMsg = err instanceof Error ? err.message : 'Ошибка';
+                                        alert(`Ошибка сохранения: ${errorMsg}`);
                                         notification('error');
                                     }
                                 }}

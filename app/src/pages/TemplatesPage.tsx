@@ -462,12 +462,19 @@ function CreateTemplateModal({
     const [duration, setDuration] = useState(5);
     const [useTimer, setUseTimer] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const tierConfig = TIER_CONFIG[tier];
 
     const handleSubmit = async () => {
-        if (!title.trim() || isSubmitting) return;
+        console.log('[CreateTemplate] handleSubmit called', { title, tier, duration, useTimer, isSubmitting });
+        setError(null);
+        if (!title.trim() || isSubmitting) {
+            console.log('[CreateTemplate] Early return:', { titleEmpty: !title.trim(), isSubmitting });
+            return;
+        }
         setIsSubmitting(true);
+        console.log('[CreateTemplate] Starting API call...');
 
         try {
             const template = await api.template.create({
@@ -478,7 +485,10 @@ function CreateTemplateModal({
             });
             notification('success');
             onCreated(template);
-        } catch {
+        } catch (err) {
+            console.error('Failed to create template:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Ошибка создания';
+            setError(errorMessage);
             notification('error');
             setIsSubmitting(false);
         }
@@ -488,6 +498,13 @@ function CreateTemplateModal({
         <ModalOverlay onClose={onClose}>
             <div className="p-6">
                 <h2 className="text-xl font-bold mb-4">Новый шаблон</h2>
+
+                {/* Error message */}
+                {error && (
+                    <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
+                        ⚠️ {error}
+                    </div>
+                )}
 
                 {/* Title */}
                 <div className="mb-4">
@@ -594,6 +611,7 @@ function CreatePresetModal({
     const [emoji, setEmoji] = useState('🎯');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const toggleTemplate = (id: number) => {
         setSelectedIds(prev =>
@@ -604,8 +622,14 @@ function CreatePresetModal({
     };
 
     const handleSubmit = async () => {
-        if (!name.trim() || isSubmitting) return;
+        console.log('[CreatePreset] handleSubmit called', { name, emoji, selectedIds, isSubmitting });
+        setError(null);
+        if (!name.trim() || isSubmitting) {
+            console.log('[CreatePreset] Early return:', { nameEmpty: !name.trim(), isSubmitting });
+            return;
+        }
         setIsSubmitting(true);
+        console.log('[CreatePreset] Starting API call...');
 
         try {
             const preset = await api.preset.create({
@@ -615,7 +639,10 @@ function CreatePresetModal({
             });
             notification('success');
             onCreated(preset);
-        } catch {
+        } catch (err) {
+            console.error('Failed to create preset:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Ошибка создания';
+            setError(errorMessage);
             notification('error');
             setIsSubmitting(false);
         }
@@ -625,6 +652,13 @@ function CreatePresetModal({
         <ModalOverlay onClose={onClose}>
             <div className="p-6 max-h-[80vh] overflow-y-auto">
                 <h2 className="text-xl font-bold mb-4">Новый пресет</h2>
+
+                {/* Error message */}
+                {error && (
+                    <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
+                        ⚠️ {error}
+                    </div>
+                )}
 
                 {/* Name + Emoji */}
                 <div className="flex gap-3 mb-4">

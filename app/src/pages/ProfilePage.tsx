@@ -1,9 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, type FC } from 'react';
 import { useSync } from '../hooks/useSync';
 import { useUserStore, useUserSettings } from '../store/useUserStore';
 import { useHaptic, useTelegram } from '../hooks/useTelegram';
 import { formatDuration } from '../lib/utils';
+import { 
+    IconXP, IconExtraction, IconCheckCircle, IconClock, IconFire, IconTrophy,
+    IconTrending, IconSound, IconVibrate, IconBell, IconInfo, IconWarning, IconTrash, IconRun
+} from '../lib/icons';
 import api from '../lib/api';
 
 export function ProfilePage() {
@@ -96,7 +100,7 @@ export function ProfilePage() {
                                     onError={() => setPhotoUrl(null)}
                                 />
                             ) : (
-                                <span className="text-4xl">👤</span>
+                                <IconRun size={32} className="text-[var(--text-muted)]" />
                             )}
                         </div>
                     </div>
@@ -166,47 +170,47 @@ export function ProfilePage() {
                 transition={{ delay: 0.1 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>📈</span> Статистика
+                    <IconTrending size={14} /> Статистика
                 </h2>
 
                 <div className="grid grid-cols-2 gap-3">
                     <StatCard
-                        icon="✨"
+                        Icon={IconXP}
                         label="Всего XP"
                         value={stats.total_xp.toLocaleString()}
                         color="var(--accent-xp)"
                         index={0}
                     />
                     <StatCard
-                        icon="🚁"
+                        Icon={IconExtraction}
                         label="Эвакуаций"
                         value={stats.total_extractions.toString()}
                         color="var(--accent-primary)"
                         index={1}
                     />
                     <StatCard
-                        icon="✅"
+                        Icon={IconCheckCircle}
                         label="Задач"
                         value={stats.total_tasks_completed.toString()}
                         color="var(--accent-secondary)"
                         index={2}
                     />
                     <StatCard
-                        icon="⏱️"
+                        Icon={IconClock}
                         label="В фокусе"
                         value={formatDuration(stats.total_focus_minutes)}
                         color="var(--text-primary)"
                         index={3}
                     />
                     <StatCard
-                        icon="🔥"
+                        Icon={IconFire}
                         label="Текущая серия"
                         value={`${stats.current_streak} дн`}
                         color="var(--accent-warning)"
                         index={4}
                     />
                     <StatCard
-                        icon="🏆"
+                        Icon={IconTrophy}
                         label="Лучшая серия"
                         value={`${stats.best_streak} дн`}
                         color="var(--accent-xp)"
@@ -223,12 +227,12 @@ export function ProfilePage() {
                 transition={{ delay: 0.15 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>⚙️</span> Настройки
+                    <IconInfo size={14} /> Настройки
                 </h2>
 
                 <div className="card space-y-1">
                     <SettingToggle
-                        icon="🔊"
+                        Icon={IconSound}
                         label="Звуки"
                         description="Аудио при выполнении задач"
                         value={localSettings.sounds}
@@ -238,7 +242,7 @@ export function ProfilePage() {
                     <div className="h-px bg-[var(--border-default)] my-3" />
 
                     <SettingToggle
-                        icon="📳"
+                        Icon={IconVibrate}
                         label="Вибрация"
                         description="Haptic feedback"
                         value={localSettings.haptics}
@@ -248,7 +252,7 @@ export function ProfilePage() {
                     <div className="h-px bg-[var(--border-default)] my-3" />
 
                     <SettingToggle
-                        icon="🔔"
+                        Icon={IconBell}
                         label="Уведомления"
                         description="Push-напоминания от бота"
                         value={localSettings.notifications}
@@ -265,13 +269,13 @@ export function ProfilePage() {
                 transition={{ delay: 0.2 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>ℹ️</span> О приложении
+                    <IconInfo size={14} /> О приложении
                 </h2>
 
                 <div className="card bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-secondary)]">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center">
-                            <span className="text-2xl">🎯</span>
+                            <IconRun size={24} color="var(--accent-primary)" />
                         </div>
                         <div className="flex-1">
                             <div className="font-semibold text-[var(--text-primary)]">Rogue-Day</div>
@@ -294,7 +298,7 @@ export function ProfilePage() {
                 transition={{ delay: 0.25 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>⚠️</span> Опасная зона
+                    <IconWarning size={14} /> Опасная зона
                 </h2>
 
                 <motion.button
@@ -303,7 +307,7 @@ export function ProfilePage() {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                 >
-                    <span>🗑️</span>
+                    <IconTrash size={18} />
                     Сбросить локальные данные
                 </motion.button>
             </motion.section>
@@ -334,7 +338,7 @@ export function ProfilePage() {
                             >
                                 <div className="text-center mb-6">
                                     <div className="w-16 h-16 rounded-full bg-[var(--accent-danger)]/20 flex items-center justify-center mx-auto mb-4">
-                                        <span className="text-3xl">⚠️</span>
+                                        <IconWarning size={32} color="var(--accent-danger)" />
                                     </div>
                                     <h3 className="text-lg font-bold mb-2">Сбросить данные?</h3>
                                     <p className="text-sm text-[var(--text-muted)]">
@@ -369,13 +373,13 @@ export function ProfilePage() {
 
 // Stat card component with animations
 const StatCard = memo(function StatCard({
-    icon,
+    Icon,
     label,
     value,
     color,
     index,
 }: {
-    icon: string;
+    Icon: FC<{ size?: number; color?: string }>;
     label: string;
     value: string;
     color: string;
@@ -389,7 +393,12 @@ const StatCard = memo(function StatCard({
             transition={{ delay: 0.15 + index * 0.03 }}
             whileHover={{ scale: 1.02, borderColor: color }}
         >
-            <span className="text-2xl mb-1">{icon}</span>
+            <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
+                style={{ backgroundColor: `${color}15` }}
+            >
+                <Icon size={22} color={color} />
+            </div>
             <span className="text-xl font-bold font-mono" style={{ color }}>
                 {value}
             </span>
@@ -400,13 +409,13 @@ const StatCard = memo(function StatCard({
 
 // Setting toggle component with animated switch
 const SettingToggle = memo(function SettingToggle({
-    icon,
+    Icon,
     label,
     description,
     value,
     onChange,
 }: {
-    icon: string;
+    Icon: FC<{ size?: number; className?: string }>;
     label: string;
     description: string;
     value: boolean;
@@ -416,7 +425,7 @@ const SettingToggle = memo(function SettingToggle({
         <div className="flex items-center justify-between py-2">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center">
-                    <span className="text-lg">{icon}</span>
+                    <Icon size={18} className="text-[var(--text-secondary)]" />
                 </div>
                 <div>
                     <div className="font-medium text-[var(--text-primary)]">{label}</div>

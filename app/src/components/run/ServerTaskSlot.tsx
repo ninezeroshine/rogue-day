@@ -3,14 +3,28 @@ import { useState, useCallback, useMemo, memo } from 'react';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useTimer } from '../../hooks/useTimer';
-import { getTierEmoji, getTierColor, TIER_CONFIG } from '../../lib/constants';
+import { getTierColor, TIER_CONFIG } from '../../lib/constants';
 import { formatTimer, formatDuration } from '../../lib/utils';
+import { 
+    IconTier1, IconTier2, IconTier3, 
+    IconPlay, IconCheck, IconX, IconCheckCircle, IconXCircle,
+    IconTimer, IconFire, IconSave
+} from '../../lib/icons';
 import api from '../../lib/api';
 import type { TaskResponse } from '../../lib/api';
 import type { TierLevel } from '../../store/types';
 
 interface ServerTaskSlotProps {
     task: TaskResponse;
+}
+
+// Get tier icon component
+function getTierIcon(tier: TierLevel) {
+    switch (tier) {
+        case 1: return IconTier1;
+        case 2: return IconTier2;
+        case 3: return IconTier3;
+    }
 }
 
 /**
@@ -62,7 +76,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
     const tier = task.tier as TierLevel;
     const tierConfig = TIER_CONFIG[tier];
     const tierColor = getTierColor(tier);
-    const tierEmoji = getTierEmoji(tier);
+    const TierIcon = getTierIcon(tier);
 
     // Calculate remaining time from server's started_at for sync across devices
     const serverRemaining = useMemo(() => {
@@ -144,7 +158,12 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                 return (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="text-2xl flex-shrink-0">{tierEmoji}</span>
+                            <div 
+                                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: `${tierColor}15` }}
+                            >
+                                <TierIcon size={22} color={tierColor} />
+                            </div>
                             <div className="min-w-0">
                                 <div className="font-medium truncate">{task.title}</div>
                                 <div className="text-sm text-[var(--text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -159,7 +178,9 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                     <span className="font-mono" style={{ color: 'var(--accent-xp)' }}>
                                         +{task.xp_earned} XP
                                     </span>
-                                    {task.use_timer && <span>⏱️</span>}
+                                    {task.use_timer && (
+                                        <IconTimer size={14} className="text-[var(--text-muted)]" />
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -172,7 +193,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                <span aria-hidden>▶</span>
+                                <IconPlay size={16} />
                                 <span className="sm:hidden">Старт</span>
                                 <span className="hidden sm:inline">Начать</span>
                             </motion.button>
@@ -183,7 +204,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                ✕
+                                <IconX size={18} />
                             </motion.button>
                         </div>
                     </div>
@@ -194,14 +215,20 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl animate-pulse">{tierEmoji}</span>
+                                <div 
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse"
+                                    style={{ backgroundColor: `${tierColor}20` }}
+                                >
+                                    <TierIcon size={22} color={tierColor} />
+                                </div>
                                 <div>
                                     <div className="font-medium">{task.title}</div>
                                     <div
-                                        className="text-sm font-medium"
+                                        className="text-sm font-medium flex items-center gap-1"
                                         style={{ color: tierColor }}
                                     >
-                                        🔥 В процессе...
+                                        <IconFire size={14} />
+                                        <span>В процессе...</span>
                                     </div>
                                 </div>
                             </div>
@@ -245,7 +272,8 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                ✓ Завершить
+                                <IconCheck size={16} />
+                                <span>Завершить</span>
                             </motion.button>
                             {tierConfig.canFail && (
                                 <motion.button
@@ -255,7 +283,8 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
-                                    ✕ Провал
+                                    <IconX size={16} />
+                                    <span>Провал</span>
                                 </motion.button>
                             )}
                         </div>
@@ -270,7 +299,9 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                         animate={{ opacity: 0.8 }}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="text-2xl">✅</span>
+                            <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/15 flex items-center justify-center">
+                                <IconCheckCircle size={22} color="var(--accent-primary)" />
+                            </div>
                             <div>
                                 <div className="font-medium line-through text-[var(--text-muted)]">
                                     {task.title}
@@ -294,21 +325,21 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                         notification('success');
                                     } catch (err) {
                                         console.error('Failed to save as template:', err);
-                                        // Show alert for debugging in Telegram
                                         const errorMsg = err instanceof Error ? err.message : 'Ошибка';
                                         alert(`Ошибка сохранения: ${errorMsg}`);
                                         notification('error');
                                     }
                                 }}
-                                className="text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] transition-colors"
+                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] transition-colors"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                💾 Шаблон
+                                <IconSave size={14} />
+                                <span>Шаблон</span>
                             </motion.button>
                         ) : (
                             <span className="text-xs text-[var(--accent-primary)] flex items-center gap-1">
-                                <span>✓</span>
+                                <IconCheck size={14} />
                                 <span>Сохранено</span>
                             </span>
                         )}
@@ -323,7 +354,9 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                         animate={{ opacity: 0.5 }}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="text-2xl">❌</span>
+                            <div className="w-10 h-10 rounded-xl bg-[var(--accent-danger)]/15 flex items-center justify-center">
+                                <IconXCircle size={22} color="var(--accent-danger)" />
+                            </div>
                             <div>
                                 <div className="font-medium line-through text-[var(--text-muted)]">
                                     {task.title}

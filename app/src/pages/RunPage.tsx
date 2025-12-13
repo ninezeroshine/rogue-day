@@ -10,6 +10,10 @@ import { XPCounter } from '../components/run/XPCounter';
 import { QuickStartCard } from '../components/run/QuickStartCard';
 import { PresetAppliedToast } from '../components/run/PresetAppliedToast';
 import { PresetPickerModal } from '../components/run/PresetPickerModal';
+import { 
+    IconEnergy, IconRun, IconMedal, IconXP, IconCheckCircle, 
+    IconClock, IconRocket, IconExtraction, IconPreset, IconPlus, IconWarning
+} from '../lib/icons';
 import type { PresetApplyResponse } from '../lib/api';
 
 export function RunPage() {
@@ -106,7 +110,13 @@ export function RunPage() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-4xl mb-4 animate-pulse">⚡</div>
+                    <motion.div 
+                        className="mb-4 flex justify-center"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                        <IconEnergy size={48} color="var(--accent-primary)" />
+                    </motion.div>
                     <div className="text-[var(--text-muted)]">Загрузка...</div>
                 </div>
             </div>
@@ -118,7 +128,9 @@ export function RunPage() {
         return (
             <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="text-center">
-                    <div className="text-4xl mb-4">⚠️</div>
+                    <div className="mb-4 flex justify-center">
+                        <IconWarning size={48} color="var(--accent-danger)" />
+                    </div>
                     <div className="text-[var(--accent-danger)] mb-4">{error}</div>
                     <button
                         onClick={() => loadCurrentRun()}
@@ -140,7 +152,14 @@ export function RunPage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                 >
-                    <div className="text-6xl mb-6">🎖️</div>
+                    <motion.div 
+                        className="w-24 h-24 rounded-full bg-[var(--accent-xp)]/15 flex items-center justify-center mb-6"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', delay: 0.1 }}
+                    >
+                        <IconMedal size={48} color="var(--accent-xp)" />
+                    </motion.div>
                     <h1 className="text-3xl font-bold mb-2">Миссия Завершена</h1>
                     <p className="text-[var(--text-secondary)] mb-8">
                         Отличная работа, оператор!
@@ -149,7 +168,10 @@ export function RunPage() {
                     <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-default)] w-full max-w-sm mb-8">
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--text-secondary)]">💎 XP Эвакуирован</span>
+                                <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                    <IconXP size={18} color="var(--accent-xp)" />
+                                    XP Эвакуирован
+                                </span>
                                 <span
                                     className="text-2xl font-bold font-mono"
                                     style={{ color: 'var(--accent-xp)' }}
@@ -159,14 +181,20 @@ export function RunPage() {
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--text-secondary)]">✅ Задач выполнено</span>
+                                <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                    <IconCheckCircle size={18} color="var(--accent-primary)" />
+                                    Задач выполнено
+                                </span>
                                 <span className="text-xl font-bold text-[var(--accent-primary)]">
                                     {extractionResult.tasksCompleted}
                                 </span>
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--text-secondary)]">⏱️ Время в фокусе</span>
+                                <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                    <IconClock size={18} />
+                                    Время в фокусе
+                                </span>
                                 <span className="text-xl font-bold">
                                     {extractionResult.totalFocusMinutes} мин
                                 </span>
@@ -174,12 +202,15 @@ export function RunPage() {
                         </div>
                     </div>
 
-                    <button
+                    <motion.button
                         onClick={handleNewRun}
-                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success"
+                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success flex items-center gap-2"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                     >
-                        🚀 Новый Ран
-                    </button>
+                        <IconRocket size={22} />
+                        <span>Новый Ран</span>
+                    </motion.button>
                 </motion.div>
             </div>
         );
@@ -194,7 +225,14 @@ export function RunPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <div className="text-6xl mb-6">🎯</div>
+                    <motion.div 
+                        className="w-24 h-24 rounded-full bg-[var(--accent-primary)]/15 flex items-center justify-center mb-6"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring' }}
+                    >
+                        <IconRun size={48} color="var(--accent-primary)" />
+                    </motion.div>
                     <h1 className="text-3xl font-bold mb-2">Rogue-Day</h1>
                     <p className="text-[var(--text-secondary)] mb-2">
                         Каждый день — новый ран
@@ -205,16 +243,19 @@ export function RunPage() {
 
                     {user && (
                         <p className="text-sm text-[var(--text-muted)] mb-4">
-                            Привет, {user.first_name}! 👋
+                            Привет, {user.first_name}!
                         </p>
                     )}
 
-                    <button
+                    <motion.button
                         onClick={handleStartRun}
-                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success animate-pulse-glow"
+                        className="btn btn-primary text-lg px-8 py-4 rounded-xl bg-[var(--accent-primary)] text-white font-bold glow-success animate-pulse-glow flex items-center gap-2"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                     >
-                        ⚡ Начать Ран
-                    </button>
+                        <IconEnergy size={22} />
+                        <span>Начать Ран</span>
+                    </motion.button>
                 </motion.div>
             </div>
         );
@@ -227,7 +268,9 @@ export function RunPage() {
             <header className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl">⚡</span>
+                        <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/15 flex items-center justify-center">
+                            <IconEnergy size={22} color="var(--accent-primary)" />
+                        </div>
                         <div>
                             <h1 className="text-xl font-bold" style={{ color: 'var(--accent-primary)' }}>
                                 Ран активен
@@ -238,14 +281,15 @@ export function RunPage() {
                         </div>
                     </div>
 
-                    {/* Extraction button - glowing */}
+                    {/* Extraction button */}
                     <motion.button
                         onClick={() => setShowExtraction(true)}
-                        className="btn btn-secondary text-sm px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] font-medium"
+                        className="btn btn-secondary text-sm px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] font-medium flex items-center gap-1.5"
                         whileHover={{ scale: 1.05, borderColor: 'var(--accent-xp)' }}
                         whileTap={{ scale: 0.95 }}
                     >
-                        🚁 Экстракция
+                        <IconExtraction size={16} />
+                        <span>Экстракция</span>
                     </motion.button>
                 </div>
 
@@ -273,14 +317,14 @@ export function RunPage() {
                     {tasks.length > 0 && (
                         <motion.button
                             onClick={() => setShowPresetPicker(true)}
-                            className="w-12 h-12 rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] text-xl shadow-lg flex items-center justify-center"
+                            className="w-12 h-12 rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] shadow-lg flex items-center justify-center"
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0, opacity: 0 }}
                             whileHover={{ scale: 1.1, borderColor: 'var(--accent-secondary)' }}
                             whileTap={{ scale: 0.9 }}
                         >
-                            📦
+                            <IconPreset size={20} className="text-[var(--text-secondary)]" />
                         </motion.button>
                     )}
                 </AnimatePresence>
@@ -288,11 +332,11 @@ export function RunPage() {
                 {/* Add task FAB (primary) */}
                 <motion.button
                     onClick={() => setShowAddTask(true)}
-                    className="w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-3xl font-bold shadow-lg flex items-center justify-center glow-success"
+                    className="w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-lg flex items-center justify-center glow-success"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                 >
-                    +
+                    <IconPlus size={28} strokeWidth={2.5} />
                 </motion.button>
             </div>
 

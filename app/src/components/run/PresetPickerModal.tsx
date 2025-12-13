@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useServerRunStore } from '../../store/useServerRunStore';
+import { 
+    IconX, IconPreset, IconTemplate, IconStar, IconEnergy, IconTimer, IconRun, IconPlus,
+    IconTier1, IconTier2, IconTier3, IconInfo
+} from '../../lib/icons';
 import api from '../../lib/api';
 import type { PresetResponse, TaskTemplateResponse, PresetApplyResponse } from '../../lib/api';
 
@@ -13,6 +17,15 @@ interface PresetPickerModalProps {
 }
 
 type TabType = 'presets' | 'templates';
+
+// Get tier icon component
+function getTierIcon(tier: 1 | 2 | 3): FC<{ size?: number; color?: string }> {
+    switch (tier) {
+        case 1: return IconTier1;
+        case 2: return IconTier2;
+        case 3: return IconTier3;
+    }
+}
 
 export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }: PresetPickerModalProps) {
     const { impact, notification } = useHaptic();
@@ -48,7 +61,6 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
         try {
             const result = await api.preset.apply(preset.id);
 
-            // Staggered haptic feedback
             for (let i = 0; i < result.tasks_created; i++) {
                 setTimeout(() => impact('light'), i * 80);
             }
@@ -68,7 +80,6 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
     const handleApplyTemplate = useCallback(async (template: TaskTemplateResponse) => {
         if (applyingId) return;
         
-        // Check energy
         const tierEnergyCost = template.tier === 1 ? 0 : template.tier === 2 ? 5 : 15;
         if (currentEnergy < tierEnergyCost) {
             notification('error');
@@ -132,14 +143,17 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
                     {/* Header */}
                     <div className="p-4 border-b border-[var(--border-default)]">
                         <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-xl font-bold">Добавить из библиотеки</h2>
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <IconPreset size={20} color="var(--accent-primary)" />
+                                Добавить из библиотеки
+                            </h2>
                             <motion.button
                                 onClick={onClose}
                                 className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-muted)]"
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                             >
-                                ✕
+                                <IconX size={16} />
                             </motion.button>
                         </div>
 
@@ -148,14 +162,14 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
                             <TabButton
                                 active={activeTab === 'presets'}
                                 onClick={() => handleTabChange('presets')}
-                                icon="📦"
+                                Icon={IconPreset}
                                 label="Пресеты"
                                 count={presets.length}
                             />
                             <TabButton
                                 active={activeTab === 'templates'}
                                 onClick={() => handleTabChange('templates')}
-                                icon="📋"
+                                Icon={IconTemplate}
                                 label="Шаблоны"
                                 count={templates.length}
                             />
@@ -189,11 +203,12 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
                     </div>
 
                     {/* Footer hint */}
-                    <div className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                        <p className="text-xs text-[var(--text-muted)] text-center">
+                    <div className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] flex items-center justify-center gap-2">
+                        <IconInfo size={14} className="text-[var(--text-muted)]" />
+                        <p className="text-xs text-[var(--text-muted)]">
                             {activeTab === 'presets' 
-                                ? '💡 Пресет добавит все свои шаблоны сразу'
-                                : '💡 Шаблон добавит одну задачу в текущий ран'
+                                ? 'Пресет добавит все свои шаблоны сразу'
+                                : 'Шаблон добавит одну задачу в текущий ран'
                             }
                         </p>
                     </div>
@@ -207,13 +222,13 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
 const TabButton = memo(function TabButton({
     active,
     onClick,
-    icon,
+    Icon,
     label,
     count,
 }: {
     active: boolean;
     onClick: () => void;
-    icon: string;
+    Icon: FC<{ size?: number; className?: string }>;
     label: string;
     count: number;
 }) {
@@ -227,7 +242,7 @@ const TabButton = memo(function TabButton({
             }`}
             whileTap={{ scale: 0.97 }}
         >
-            <span>{icon}</span>
+            <Icon size={16} />
             <span>{label}</span>
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                 active ? 'bg-white/20' : 'bg-[var(--bg-card)]'
@@ -251,14 +266,13 @@ const PresetsTab = memo(function PresetsTab({
     if (presets.length === 0) {
         return (
             <EmptyState
-                icon="📦"
+                Icon={IconPreset}
                 title="Нет пресетов"
                 description="Создай пресеты на странице Шаблоны"
             />
         );
     }
 
-    // Sort favorites first
     const sortedPresets = [...presets].sort((a, b) => {
         if (a.is_favorite && !b.is_favorite) return -1;
         if (!a.is_favorite && b.is_favorite) return 1;
@@ -295,7 +309,6 @@ const PresetCard = memo(function PresetCard({
     disabled: boolean;
     onApply: () => void;
 }) {
-    // Calculate total energy cost
     const totalEnergy = preset.templates.reduce((sum, t) => {
         const cost = t.tier === 1 ? 0 : t.tier === 2 ? 5 : 15;
         return sum + cost;
@@ -315,15 +328,15 @@ const PresetCard = memo(function PresetCard({
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] flex items-center justify-center text-xl flex-shrink-0">
-                        {preset.emoji || '📋'}
+                        {preset.emoji || <IconPreset size={20} className="text-[var(--text-muted)]" />}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <span className="font-medium truncate">{preset.name}</span>
-                            {preset.is_favorite && <span className="text-sm">⭐</span>}
+                            {preset.is_favorite && <IconStar size={14} color="var(--accent-xp)" />}
                         </div>
-                        <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                            {preset.templates.length} задач • ⚡{totalEnergy}
+                        <div className="text-xs text-[var(--text-muted)] mt-0.5 flex items-center gap-1">
+                            {preset.templates.length} задач • <IconEnergy size={12} />{totalEnergy}
                         </div>
                     </div>
                 </div>
@@ -341,7 +354,6 @@ const PresetCard = memo(function PresetCard({
                 )}
             </div>
 
-            {/* Template previews */}
             {preset.templates.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
                     {preset.templates.slice(0, 4).map((t) => (
@@ -378,14 +390,13 @@ const TemplatesTab = memo(function TemplatesTab({
     if (templates.length === 0) {
         return (
             <EmptyState
-                icon="📋"
+                Icon={IconTemplate}
                 title="Нет шаблонов"
                 description="Шаблоны создаются из завершённых задач"
             />
         );
     }
 
-    // Group by tier
     const byTier = {
         1: templates.filter(t => t.tier === 1),
         2: templates.filter(t => t.tier === 2),
@@ -393,7 +404,6 @@ const TemplatesTab = memo(function TemplatesTab({
     };
 
     const tierNames = { 1: 'Разминка', 2: 'Рутина', 3: 'Фокус' };
-    const tierEmojis = { 1: '🌱', 2: '⚡', 3: '🔥' };
 
     return (
         <div className="space-y-4">
@@ -403,17 +413,19 @@ const TemplatesTab = memo(function TemplatesTab({
 
                 const energyCost = tier === 1 ? 0 : tier === 2 ? 5 : 15;
                 const hasEnergy = currentEnergy >= energyCost;
+                const TierIcon = getTierIcon(tier);
+                const tierColor = tier === 1 ? 'var(--accent-primary)' : tier === 2 ? 'var(--accent-primary)' : 'var(--accent-xp)';
 
                 return (
                     <div key={tier}>
                         <div className="flex items-center gap-2 mb-2">
-                            <span>{tierEmojis[tier]}</span>
+                            <TierIcon size={16} color={tierColor} />
                             <span className="text-sm font-medium text-[var(--text-secondary)]">
                                 T{tier} — {tierNames[tier]}
                             </span>
                             {!hasEnergy && energyCost > 0 && (
-                                <span className="text-xs text-[var(--accent-danger)]">
-                                    (нужно ⚡{energyCost})
+                                <span className="text-xs text-[var(--accent-danger)] flex items-center gap-1">
+                                    (нужно <IconEnergy size={10} />{energyCost})
                                 </span>
                             )}
                         </div>
@@ -465,7 +477,13 @@ const TemplateCard = memo(function TemplateCard({
                 <div className="text-xs text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
                     <span>{template.duration} мин</span>
                     <span>•</span>
-                    <span>{template.use_timer ? '⏱️ Таймер' : '🎯 Без таймера'}</span>
+                    <span className="flex items-center gap-1">
+                        {template.use_timer ? (
+                            <><IconTimer size={12} /> Таймер</>
+                        ) : (
+                            <><IconRun size={12} /> Без таймера</>
+                        )}
+                    </span>
                     {template.times_used > 0 && (
                         <>
                             <span>•</span>
@@ -482,7 +500,7 @@ const TemplateCard = memo(function TemplateCard({
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 />
             ) : (
-                <div className="text-lg">+</div>
+                <IconPlus size={18} className="text-[var(--text-muted)]" />
             )}
         </motion.button>
     );
@@ -490,18 +508,18 @@ const TemplateCard = memo(function TemplateCard({
 
 // Empty state
 function EmptyState({
-    icon,
+    Icon,
     title,
     description,
 }: {
-    icon: string;
+    Icon: FC<{ size?: number; className?: string }>;
     title: string;
     description: string;
 }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
-                <span className="text-3xl">{icon}</span>
+                <Icon size={28} className="text-[var(--text-muted)]" />
             </div>
             <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-1">
                 {title}
@@ -512,4 +530,3 @@ function EmptyState({
         </div>
     );
 }
-

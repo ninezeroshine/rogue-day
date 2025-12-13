@@ -2,14 +2,25 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
-import { TIER_CONFIG, getTierEmoji, getTierColor } from '../../lib/constants';
+import { TIER_CONFIG, getTierColor } from '../../lib/constants';
+import { IconTier1, IconTier2, IconTier3, IconTimer, IconEnergy, IconXP, IconPlus } from '../../lib/icons';
 import type { TierLevel } from '../../store/types';
+import type { FC } from 'react';
 
 interface ServerAddTaskModalProps {
     onClose: () => void;
     maxEnergy: number;
     currentEnergy: number;
-    totalFocusMinutes?: number; // For tier unlock checking
+    totalFocusMinutes?: number;
+}
+
+// Get tier icon component
+function getTierIcon(tier: TierLevel): FC<{ size?: number; color?: string }> {
+    switch (tier) {
+        case 1: return IconTier1;
+        case 2: return IconTier2;
+        case 3: return IconTier3;
+    }
 }
 
 export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes = 0 }: ServerAddTaskModalProps) {
@@ -35,21 +46,18 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
 
     // Handle tier selection with auto-duration and auto-timer
     const handleTierSelect = (tier: TierLevel) => {
-        if (!isTierUnlocked(tier)) return; // Can't select locked tier
+        if (!isTierUnlocked(tier)) return;
 
         setSelectedTier(tier);
         const config = TIER_CONFIG[tier];
 
-        // Reset duration to tier's minimum
         setDuration(config.duration.min);
 
-        // Auto-set useTimer based on tier
         if (config.timerMode === 'required') {
             setUseTimer(true);
         } else if (config.timerMode === 'none') {
             setUseTimer(false);
         }
-        // For 'optional' (T2), keep user's choice
 
         impact('light');
     };
@@ -98,7 +106,7 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
         <AnimatePresence>
             {/* Backdrop */}
             <motion.div
-                className="fixed inset-0 bg-black/60 z-40"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -114,7 +122,10 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
                 <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-default)]">
-                    <h2 className="text-xl font-bold mb-4">Новая задача</h2>
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <IconPlus size={20} color="var(--accent-primary)" />
+                        Новая задача
+                    </h2>
 
                     {/* Title input */}
                     <input
@@ -138,6 +149,8 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                                 const hasEnoughEnergy = currentEnergy >= config.energyCost;
                                 const isSelected = selectedTier === tier;
                                 const canSelect = unlocked && hasEnoughEnergy;
+                                const TierIcon = getTierIcon(tier);
+                                const tierColor = getTierColor(tier);
 
                                 return (
                                     <button
@@ -145,7 +158,7 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                                         onClick={() => handleTierSelect(tier)}
                                         disabled={!canSelect}
                                         className={`
-                                            p-3 rounded-xl border-2 transition-all
+                                            p-3 rounded-xl border-2 transition-all flex flex-col items-center
                                             ${isSelected
                                                 ? 'border-[var(--accent-primary)] bg-[var(--bg-hover)]'
                                                 : 'border-[var(--border-default)] bg-[var(--bg-secondary)]'
@@ -153,10 +166,15 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                                             ${!canSelect ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
                                         `}
                                         style={{
-                                            borderColor: isSelected ? getTierColor(tier) : undefined,
+                                            borderColor: isSelected ? tierColor : undefined,
                                         }}
                                     >
-                                        <div className="text-2xl mb-1">{getTierEmoji(tier)}</div>
+                                        <div 
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
+                                            style={{ backgroundColor: `${tierColor}15` }}
+                                        >
+                                            <TierIcon size={22} color={tierColor} />
+                                        </div>
                                         <div className="text-sm font-medium">{config.name}</div>
                                         <div className="text-xs text-[var(--text-muted)]">
                                             {config.duration.min}-{config.duration.max} мин
@@ -164,15 +182,17 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
 
                                         {/* Locked indicator */}
                                         {!unlocked && (
-                                            <div className="text-xs text-[var(--accent-warning)] mt-1">
-                                                🔒 Нужно {config.unlockRequirement} мин
+                                            <div className="text-xs text-[var(--accent-warning)] mt-1 flex items-center gap-1">
+                                                <span>🔒</span>
+                                                <span>{config.unlockRequirement} мин</span>
                                             </div>
                                         )}
 
                                         {/* Energy cost (only if unlocked) */}
                                         {unlocked && config.energyCost > 0 && (
-                                            <div className={`text-xs mt-1 ${hasEnoughEnergy ? 'text-[var(--text-muted)]' : 'text-[var(--accent-danger)]'}`}>
-                                                ⚡ {config.energyCost}
+                                            <div className={`text-xs mt-1 flex items-center gap-1 ${hasEnoughEnergy ? 'text-[var(--text-muted)]' : 'text-[var(--accent-danger)]'}`}>
+                                                <IconEnergy size={12} />
+                                                <span>{config.energyCost}</span>
                                             </div>
                                         )}
                                     </button>
@@ -203,37 +223,42 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                     {/* Timer toggle (only for T2 - optional mode) */}
                     {tierConfig.timerMode === 'optional' && (
                         <div className="mb-4 flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-xl">
-                            <div>
-                                <div className="text-sm font-medium">⏱️ С таймером</div>
-                                <div className="text-xs text-[var(--text-muted)]">
-                                    {useTimer ? '100% XP, можно провалить' : '80% XP, без риска'}
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[var(--bg-card)] flex items-center justify-center">
+                                    <IconTimer size={16} className="text-[var(--text-secondary)]" />
+                                </div>
+                                <div>
+                                    <div className="text-sm font-medium">С таймером</div>
+                                    <div className="text-xs text-[var(--text-muted)]">
+                                        {useTimer ? '100% XP, можно провалить' : '80% XP, без риска'}
+                                    </div>
                                 </div>
                             </div>
-                            <button
+                            <motion.button
                                 onClick={() => setUseTimer(!useTimer)}
-                                className={`
-                                    w-12 h-6 rounded-full transition-colors relative
-                                    ${useTimer ? 'bg-[var(--accent-primary)]' : 'bg-[var(--bg-card)]'}
-                                `}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${useTimer ? 'bg-[var(--accent-primary)]' : 'bg-[var(--bg-card)]'}`}
+                                whileTap={{ scale: 0.95 }}
                             >
-                                <div
-                                    className={`
-                                        absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow
-                                        ${useTimer ? 'translate-x-7' : 'translate-x-1'}
-                                    `}
+                                <motion.div
+                                    className="absolute top-1 w-4 h-4 bg-white rounded-full shadow"
+                                    animate={{ x: useTimer ? 28 : 4 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                                 />
-                            </button>
+                            </motion.button>
                         </div>
                     )}
 
                     {/* Timer info for T3 (required) */}
                     {tierConfig.timerMode === 'required' && (
-                        <div className="mb-4 p-3 bg-[var(--accent-warning)]/10 rounded-xl border border-[var(--accent-warning)]/30">
-                            <div className="text-sm text-[var(--accent-warning)] font-medium">
-                                ⏱️ Таймер обязателен для Фокус-задач
-                            </div>
-                            <div className="text-xs text-[var(--text-muted)]">
-                                Провал = потеря 10% дневного XP
+                        <div className="mb-4 p-3 bg-[var(--accent-warning)]/10 rounded-xl border border-[var(--accent-warning)]/30 flex items-start gap-3">
+                            <IconTimer size={18} color="var(--accent-warning)" className="mt-0.5" />
+                            <div>
+                                <div className="text-sm text-[var(--accent-warning)] font-medium">
+                                    Таймер обязателен для Фокус-задач
+                                </div>
+                                <div className="text-xs text-[var(--text-muted)]">
+                                    Провал = потеря 10% дневного XP
+                                </div>
                             </div>
                         </div>
                     )}
@@ -241,7 +266,10 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                     {/* XP Preview */}
                     <div className="mb-4 p-3 bg-[var(--bg-secondary)] rounded-xl">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm text-[var(--text-muted)]">Награда:</span>
+                            <span className="text-sm text-[var(--text-muted)] flex items-center gap-2">
+                                <IconXP size={16} color="var(--accent-xp)" />
+                                Награда:
+                            </span>
                             <span className="font-bold text-lg" style={{ color: 'var(--accent-xp)' }}>
                                 +{estimatedXP} XP
                             </span>
@@ -250,19 +278,22 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
 
                     {/* Actions */}
                     <div className="flex gap-3">
-                        <button
+                        <motion.button
                             onClick={handleClose}
                             className="flex-1 py-3 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] font-medium"
+                            whileTap={{ scale: 0.95 }}
                         >
                             Отмена
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
                             onClick={handleSubmit}
                             disabled={!canAdd}
-                            className={`flex-1 py-3 rounded-xl bg-[var(--accent-primary)] text-white font-bold ${!canAdd ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`flex-1 py-3 rounded-xl bg-[var(--accent-primary)] text-white font-bold flex items-center justify-center gap-2 ${!canAdd ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            whileTap={canAdd ? { scale: 0.95 } : undefined}
                         >
-                            {isSubmitting ? 'Добавляем...' : 'Добавить'}
-                        </button>
+                            <IconPlus size={18} />
+                            <span>{isSubmitting ? 'Добавляем...' : 'Добавить'}</span>
+                        </motion.button>
                     </div>
                 </div>
             </motion.div>

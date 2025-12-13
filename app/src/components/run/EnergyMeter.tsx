@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { getPercentage } from '../../lib/utils';
+import { IconEnergy } from '../../lib/icons';
 
 interface EnergyMeterProps {
     current: number;
@@ -19,8 +20,8 @@ export function EnergyMeter({ current, max }: EnergyMeterProps) {
     return (
         <div className="flex flex-col gap-1 bg-[var(--bg-card)] rounded-xl p-3 border border-[var(--border-default)]">
             <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--text-secondary)] flex items-center gap-1">
-                    <span>⚡</span>
+                <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                    <IconEnergy size={16} style={{ color: getColor() }} />
                     <span>Энергия</span>
                 </span>
                 <span className="font-mono font-bold" style={{ color: getColor() }}>

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { IconXP } from '../../lib/icons';
 
 interface XPCounterProps {
     xp: number;
@@ -25,7 +26,9 @@ export function XPCounter({ xp }: XPCounterProps) {
 
     return (
         <div className="relative flex items-center gap-2 bg-[var(--bg-card)] rounded-xl p-3 border border-[var(--border-default)]">
-            <span className="text-2xl">✨</span>
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent-xp)]/10 flex items-center justify-center">
+                <IconXP size={22} color="var(--accent-xp)" />
+            </div>
 
             <div className="flex flex-col">
                 <span className="text-xs text-[var(--text-muted)] uppercase tracking-wide">

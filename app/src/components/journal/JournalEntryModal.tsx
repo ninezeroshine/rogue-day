@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatDuration } from '../../lib/utils';
+import { IconExtraction, IconX, IconClock, IconTimer, IconTier1, IconTier2, IconTier3 } from '../../lib/icons';
 import type { ExtractionResult } from '../../store/types';
 
 interface JournalEntryModalProps {
@@ -74,20 +75,18 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                         >
                             {/* Header with gradient */}
                             <div className="relative bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-card)] p-5 pb-4 border-b border-[var(--border-default)]">
-                                <div className="absolute top-4 right-4">
-                                    <motion.button
-                                        onClick={onClose}
-                                        className="w-8 h-8 rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)] transition-colors"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                    >
-                                        ✕
-                                    </motion.button>
-                                </div>
+                                <motion.button
+                                    onClick={onClose}
+                                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)] transition-colors"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                >
+                                    <IconX size={16} />
+                                </motion.button>
                                 
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="w-10 h-10 rounded-xl bg-[var(--accent-xp)]/10 flex items-center justify-center">
-                                        <span className="text-xl">🚁</span>
+                                        <IconExtraction size={22} color="var(--accent-xp)" />
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-bold text-[var(--text-primary)]">
@@ -135,12 +134,12 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                 {/* Focus & Timer row */}
                                 <div className="grid grid-cols-2 gap-3">
                                     <StatBox
-                                        icon="⏱️"
+                                        Icon={IconClock}
                                         label="Время в фокусе"
                                         value={formatDuration(entry.totalFocusMinutes)}
                                     />
                                     <StatBox
-                                        icon="⏰"
+                                        Icon={IconTimer}
                                         label="С таймером"
                                         value={`${entry.completedWithTimer ?? 0} / ${(entry.completedWithTimer ?? 0) + (entry.completedWithoutTimer ?? 0)}`}
                                     />
@@ -201,9 +200,9 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                     <div className="text-xs text-[var(--text-muted)] mb-3">Разбивка по тирам</div>
                                     <div className="space-y-2">
                                         {([
-                                            { tier: 'T1', label: 'Разминка', c: entry.t1Completed ?? 0, f: entry.t1Failed ?? 0, color: 'var(--accent-primary)', opacity: 0.5 },
-                                            { tier: 'T2', label: 'Рутина', c: entry.t2Completed ?? 0, f: entry.t2Failed ?? 0, color: 'var(--accent-primary)', opacity: 0.8 },
-                                            { tier: 'T3', label: 'Фокус', c: entry.t3Completed ?? 0, f: entry.t3Failed ?? 0, color: 'var(--accent-xp)', opacity: 1 },
+                                            { tier: 'T1', label: 'Разминка', c: entry.t1Completed ?? 0, f: entry.t1Failed ?? 0, color: 'var(--accent-primary)', opacity: 0.5, Icon: IconTier1 },
+                                            { tier: 'T2', label: 'Рутина', c: entry.t2Completed ?? 0, f: entry.t2Failed ?? 0, color: 'var(--accent-primary)', opacity: 0.8, Icon: IconTier2 },
+                                            { tier: 'T3', label: 'Фокус', c: entry.t3Completed ?? 0, f: entry.t3Failed ?? 0, color: 'var(--accent-xp)', opacity: 1, Icon: IconTier3 },
                                         ]).map((row, i) => {
                                             const total = row.c + row.f;
                                             if (total === 0) return null;
@@ -217,8 +216,8 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.3 + i * 0.1 }}
                                                 >
-                                                    <div className="w-8 text-xs font-mono font-medium" style={{ color: row.color, opacity: row.opacity }}>
-                                                        {row.tier}
+                                                    <div className="w-8 flex items-center justify-center">
+                                                        <row.Icon size={16} color={row.color} style={{ opacity: row.opacity }} />
                                                     </div>
                                                     <div className="flex-1 h-2 rounded-full overflow-hidden flex bg-[var(--bg-secondary)]">
                                                         <div 
@@ -257,18 +256,18 @@ export const JournalEntryModal = memo(function JournalEntryModal({
 
 // Stat box component
 function StatBox({
-    icon,
+    Icon,
     label,
     value,
 }: {
-    icon: string;
+    Icon: React.FC<{ size?: number; className?: string }>;
     label: string;
     value: string;
 }) {
     return (
         <div className="bg-[var(--bg-secondary)] rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">{icon}</span>
+                <Icon size={14} className="text-[var(--text-muted)]" />
                 <span className="text-xs text-[var(--text-muted)]">{label}</span>
             </div>
             <div className="text-lg font-bold text-[var(--text-primary)]">{value}</div>

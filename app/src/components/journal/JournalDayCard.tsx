@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDuration } from '../../lib/utils';
+import { IconCheck, IconX, IconChevronDown, IconExtraction } from '../../lib/icons';
 import type { ExtractionResult } from '../../store/types';
 
 interface DayGroup {
@@ -81,12 +82,12 @@ export const JournalDayCard = memo(function JournalDayCard({
                         
                         <div className="flex items-center gap-3 text-sm text-[var(--text-muted)]">
                             <span className="flex items-center gap-1">
-                                <span className="text-green-400">✓</span>
+                                <IconCheck size={14} className="text-[var(--accent-primary)]" />
                                 {group.totalTasks}
                             </span>
                             {group.totalFailed > 0 && (
                                 <span className="flex items-center gap-1 text-[var(--accent-danger)]">
-                                    <span>✗</span>
+                                    <IconX size={14} />
                                     {group.totalFailed}
                                 </span>
                             )}
@@ -113,15 +114,7 @@ export const JournalDayCard = memo(function JournalDayCard({
                                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                 className="text-[var(--text-muted)]"
                             >
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                    <path 
-                                        d="M5 7.5L10 12.5L15 7.5" 
-                                        stroke="currentColor" 
-                                        strokeWidth="2" 
-                                        strokeLinecap="round" 
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
+                                <IconChevronDown size={20} />
                             </motion.div>
                         )}
                     </div>
@@ -200,8 +193,8 @@ const RunSubCard = memo(function RunSubCard({
             className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] cursor-pointer hover:border-[var(--accent-secondary)] transition-colors"
         >
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--bg-card)] flex items-center justify-center text-sm">
-                    🚁
+                <div className="w-8 h-8 rounded-lg bg-[var(--bg-card)] flex items-center justify-center">
+                    <IconExtraction size={16} className="text-[var(--text-muted)]" />
                 </div>
                 <div>
                     <div className="text-sm font-medium">
@@ -224,4 +217,3 @@ const RunSubCard = memo(function RunSubCard({
         </motion.div>
     );
 });
-

@@ -2,11 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useExtractionHistory } from '../store/useUserStore';
 import { useSync } from '../hooks/useSync';
 import api from '../lib/api';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, type FC } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { JournalDayCard } from '../components/journal/JournalDayCard';
 import { JournalEntryModal } from '../components/journal/JournalEntryModal';
 import { useHaptic } from '../hooks/useTelegram';
+import { IconJournal, IconMedal, IconXP, IconExtraction, IconFire, IconCalendar, IconBook } from '../lib/icons';
 import type { ExtractionResult } from '../store/types';
 
 // Group extractions by date
@@ -150,12 +151,16 @@ export function JournalPage() {
                 animate={{ opacity: 1, y: 0 }}
             >
                 <div className="flex items-center gap-3 mb-1">
-                    <span className="text-2xl">📊</span>
-                    <h1 className="text-2xl font-bold">Журнал Капитана</h1>
+                    <div className="w-10 h-10 rounded-xl bg-[var(--accent-secondary)]/15 flex items-center justify-center">
+                        <IconJournal size={22} color="var(--accent-secondary)" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold">Журнал Капитана</h1>
+                        <p className="text-sm text-[var(--text-muted)]">
+                            История миссий и эвакуаций
+                        </p>
+                    </div>
                 </div>
-                <p className="text-sm text-[var(--text-muted)] ml-10">
-                    История миссий и эвакуаций
-                </p>
             </motion.header>
 
             {/* Summary stats section */}
@@ -166,7 +171,7 @@ export function JournalPage() {
                 transition={{ delay: 0.05 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>🎖️</span> Общий прогресс
+                    <IconMedal size={14} /> Общий прогресс
                 </h2>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -174,19 +179,19 @@ export function JournalPage() {
                         value={stats.total_xp.toLocaleString()}
                         label="Всего XP"
                         color="var(--accent-xp)"
-                        icon="✨"
+                        Icon={IconXP}
                     />
                     <SummaryStatCard
                         value={stats.total_extractions.toString()}
                         label="Эвакуаций"
                         color="var(--accent-primary)"
-                        icon="🚁"
+                        Icon={IconExtraction}
                     />
                     <SummaryStatCard
                         value={stats.current_streak.toString()}
                         label="Серия"
                         color="var(--accent-warning)"
-                        icon="🔥"
+                        Icon={IconFire}
                     />
                 </div>
             </motion.section>
@@ -214,7 +219,7 @@ export function JournalPage() {
                 transition={{ delay: 0.15 }}
             >
                 <h2 className="text-sm text-[var(--text-muted)] mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <span>📅</span> История по дням
+                    <IconCalendar size={14} /> История по дням
                 </h2>
 
                 {dayGroups.length === 0 ? (
@@ -224,7 +229,7 @@ export function JournalPage() {
                         animate={{ opacity: 1, scale: 1 }}
                     >
                         <div className="w-16 h-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
-                            <span className="text-3xl">📝</span>
+                            <IconBook size={28} className="text-[var(--text-muted)]" />
                         </div>
                         <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-1">
                             Пока пусто
@@ -266,12 +271,12 @@ function SummaryStatCard({
     value,
     label,
     color,
-    icon,
+    Icon,
 }: {
     value: string;
     label: string;
     color: string;
-    icon: string;
+    Icon: FC<{ size?: number; color?: string }>;
 }) {
     return (
         <motion.div 
@@ -279,7 +284,12 @@ function SummaryStatCard({
             whileHover={{ scale: 1.02, borderColor: color }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         >
-            {icon && <span className="text-lg mb-1">{icon}</span>}
+            <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center mb-1"
+                style={{ backgroundColor: `${color}15` }}
+            >
+                <Icon size={18} color={color} />
+            </div>
             <span className="text-xl font-bold font-mono" style={{ color }}>
                 {value}
             </span>

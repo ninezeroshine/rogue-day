@@ -29,10 +29,17 @@ export function TemplatesPage() {
     // Load data
     useEffect(() => {
         Promise.all([
-            api.template.list(),
-            api.preset.list()
+            api.template.list().catch((err) => {
+                console.error('Failed to load templates:', err);
+                return [];
+            }),
+            api.preset.list().catch((err) => {
+                console.error('Failed to load presets:', err);
+                return [];
+            })
         ])
             .then(([t, p]) => {
+                console.log('Loaded templates:', t.length, 'presets:', p.length);
                 setTemplates(t);
                 setPresets(p);
             })

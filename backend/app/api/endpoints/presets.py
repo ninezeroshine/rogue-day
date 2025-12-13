@@ -91,6 +91,19 @@ async def create_preset(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new preset with optional initial templates."""
+    # #region agent log
+    import json
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "presets.py:87", "message": "create_preset entry", "data": {"user_id": user.id, "name": data.name, "template_ids": data.template_ids}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "H"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
+    # #endregion
     preset = Preset(
         user_id=user.id,
         name=data.name,
@@ -127,6 +140,14 @@ async def create_preset(
         )
     )
     preset = result.scalar_one()
+    # #region agent log
+    try:
+        log_data2 = {"location": "presets.py:130", "message": "create_preset created", "data": {"user_id": user.id, "preset_id": preset.id, "name": preset.name, "templates_count": len(preset.template_links)}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "H"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
+    # #endregion
     
     return _preset_to_response(preset)
 

@@ -65,6 +65,19 @@ async def create_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new task template manually."""
+    # #region agent log
+    import json
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "templates.py:62", "message": "create_template entry", "data": {"user_id": user.id, "title": data.title, "tier": data.tier}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "G"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
+    # #endregion
     # Validate tier
     if data.tier not in [1, 2, 3]:
         raise HTTPException(status_code=400, detail="Invalid tier (must be 1, 2, or 3)")
@@ -81,6 +94,14 @@ async def create_template(
     db.add(template)
     await db.flush()
     await db.refresh(template)
+    # #region agent log
+    try:
+        log_data2 = {"location": "templates.py:85", "message": "create_template created", "data": {"user_id": user.id, "template_id": template.id, "title": template.title}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "G"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
+    # #endregion
     
     return TaskTemplateResponse.model_validate(template)
 

@@ -49,13 +49,25 @@ async def list_templates(
     import time
     log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
     try:
-        log_data2 = {"location": "templates.py:33", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates]}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
+        template_details = [{"id": t.id, "title": t.title, "user_id": t.user_id} for t in templates]
+        log_data2 = {"location": "templates.py:45", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates], "templates": template_details}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "I"}
         with open(log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(log_data2) + "\n")
+        print(f"[TEMPLATES] User {user.id}: Found {len(templates)} templates: {[t.id for t in templates]}")
+    except Exception as e:
+        print(f"[TEMPLATES] Logging error: {e}")
+    # #endregion
+    response_data = [TaskTemplateResponse.model_validate(t) for t in templates]
+    # #region agent log
+    try:
+        log_data3 = {"location": "templates.py:58", "message": "list_templates response", "data": {"user_id": user.id, "response_count": len(response_data), "response_ids": [t.id for t in response_data]}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "I"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data3) + "\n")
+        print(f"[TEMPLATES] User {user.id}: Returning {len(response_data)} templates in response")
     except Exception:
         pass
     # #endregion
-    return [TaskTemplateResponse.model_validate(t) for t in templates]
+    return response_data
 
 
 @router.post("/", response_model=TaskTemplateResponse)

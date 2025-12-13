@@ -28,18 +28,21 @@ export function TemplatesPage() {
 
     // Load data
     useEffect(() => {
+        console.log('[TemplatesPage] Loading data...');
         Promise.all([
             api.template.list().catch((err) => {
-                console.error('Failed to load templates:', err);
+                console.error('[TemplatesPage] Failed to load templates:', err);
                 return [];
             }),
             api.preset.list().catch((err) => {
-                console.error('Failed to load presets:', err);
+                console.error('[TemplatesPage] Failed to load presets:', err);
                 return [];
             })
         ])
             .then(([t, p]) => {
-                console.log('Loaded templates:', t.length, 'presets:', p.length);
+                console.log('[TemplatesPage] Loaded templates:', t.length, 'presets:', p.length);
+                console.log('[TemplatesPage] Template IDs:', t.map(t => t.id));
+                console.log('[TemplatesPage] Preset IDs:', p.map(p => p.id));
                 setTemplates(t);
                 setPresets(p);
             })

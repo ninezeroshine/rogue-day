@@ -3,8 +3,12 @@
  */
 
 // Detect local development mode
-const isLocalDev = import.meta.env.DEV && (import.meta.env.VITE_API_URL?.includes('localhost') || import.meta.env.VITE_API_URL?.includes('127.0.0.1'));
-const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalDev ? 'http://localhost:8000' : 'https://rogue-day-production.up.railway.app');
+// Use VITE_API_URL if set, otherwise default to localhost in dev mode or production URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || (
+    import.meta.env.DEV 
+        ? 'http://localhost:8000' 
+        : 'https://rogue-day-production.up.railway.app'
+);
 
 // Get Telegram WebApp if available
 const getTelegramInitData = (): string | null => {

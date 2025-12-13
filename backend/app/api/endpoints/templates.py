@@ -24,13 +24,25 @@ async def list_templates(
     category: str | None = None,
 ):
     """List all task templates for user."""
+    # #region agent log
+    import json
+    log_data = {"location": "templates.py:21", "message": "list_templates entry", "data": {"user_id": user.id, "category": category}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
+    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_data) + "\n")
+    # #endregion
     query = select(TaskTemplate).where(TaskTemplate.user_id == user.id)
     if category:
         query = query.where(TaskTemplate.category == category)
     query = query.order_by(TaskTemplate.times_used.desc(), TaskTemplate.created_at.desc())
     
     result = await db.execute(query)
-    return [TaskTemplateResponse.model_validate(t) for t in result.scalars().all()]
+    templates = result.scalars().all()
+    # #region agent log
+    log_data2 = {"location": "templates.py:33", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates]}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
+    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_data2) + "\n")
+    # #endregion
+    return [TaskTemplateResponse.model_validate(t) for t in templates]
 
 
 @router.post("/", response_model=TaskTemplateResponse)

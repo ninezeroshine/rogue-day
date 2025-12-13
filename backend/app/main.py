@@ -5,7 +5,10 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.api.router import api_router
 from app.database import engine, Base
-from app.models import User, Run, Task, Extraction  # Import models to register them
+from app.models import (
+    User, Run, Task, Extraction,
+    TaskTemplate, Preset, PresetTemplate  # Import all models to register them
+)
 
 
 @asynccontextmanager
@@ -14,10 +17,26 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting Rogue-Day Backend...")
     
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("✅ Database tables created")
+    # Create database tables (fallback if migrations didn't run)
+    # Note: Railway runs `alembic upgrade head` before starting, so this is a safety net
+    try:
+        async with engine.begin() as conn:
+            from sqlalchemy import inspect
+            inspector = inspect(conn.sync_engine)
+            existing_tables = set(inspector.get_table_names())
+            expected_tables = {"users", "runs", "tasks", "extractions", "task_templates", "presets", "preset_templates"}
+            missing_tables = expected_tables - existing_tables
+            
+            if missing_tables:
+                print(f"⚠️  Missing tables detected: {sorted(missing_tables)}")
+                print("🔄 Creating missing tables via Base.metadata.create_all...")
+                await conn.run_sync(Base.metadata.create_all)
+                print("✅ Missing tables created")
+            else:
+                print(f"✅ All tables exist ({len(existing_tables)} tables found)")
+    except Exception as e:
+        print(f"⚠️  Error checking/creating tables: {e}")
+        print("   This is OK if migrations handle table creation.")
     
     yield
     # Shutdown

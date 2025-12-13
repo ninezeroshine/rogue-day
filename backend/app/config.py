@@ -59,6 +59,8 @@ class Settings(BaseSettings):
         # Remove async driver if present
         if "asyncpg" in url:
             return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        if url.startswith("sqlite+aiosqlite://"):
+            return url.replace("sqlite+aiosqlite://", "sqlite://", 1)
         return url
     
     @property

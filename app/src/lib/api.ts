@@ -145,10 +145,28 @@ export interface ExtractionResponse {
     id: number;
     run_id: number;
     final_xp: number;
+    xp_before_penalties: number;
+    penalty_xp: number;
     tasks_completed: number;
     tasks_failed: number;
+    tasks_total: number;
     total_focus_minutes: number;
+    t1_completed: number;
+    t2_completed: number;
+    t3_completed: number;
+    t1_failed: number;
+    t2_failed: number;
+    t3_failed: number;
+    completed_with_timer: number;
+    completed_without_timer: number;
     created_at: string;
+}
+
+export interface JournalEntryResponse {
+    extraction: ExtractionResponse;
+    run_date: string;
+    started_at: string;
+    extracted_at: string | null;
 }
 
 export const runApi = {
@@ -162,6 +180,16 @@ export const runApi = {
 
     extract: async (runId: number): Promise<ExtractionResponse> => {
         return apiRequest(`/api/v1/runs/${runId}/extract`, { method: 'POST' });
+    },
+
+    listExtractions: async (limit = 30): Promise<ExtractionResponse[]> => {
+        const url = `/api/v1/runs/extractions?limit=${encodeURIComponent(String(limit))}`;
+        return apiRequest(url);
+    },
+
+    journal: async (limit = 30): Promise<JournalEntryResponse[]> => {
+        const url = `/api/v1/runs/journal?limit=${encodeURIComponent(String(limit))}`;
+        return apiRequest(url);
     },
 };
 

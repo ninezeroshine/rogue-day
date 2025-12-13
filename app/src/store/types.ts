@@ -64,10 +64,26 @@ export interface ExtractionResult {
     id: string;
     runId: string;
     finalXP: number;
+    xpBeforePenalties?: number;
+    penaltyXP?: number;
     tasksCompleted: number;
     tasksFailed: number;
+    tasksTotal?: number;
     totalFocusMinutes: number;
+    t1Completed?: number;
+    t2Completed?: number;
+    t3Completed?: number;
+    t1Failed?: number;
+    t2Failed?: number;
+    t3Failed?: number;
+    completedWithTimer?: number;
+    completedWithoutTimer?: number;
     createdAt: string;
+
+    // Run metadata (for Journal cards)
+    runDate?: string; // "YYYY-MM-DD"
+    startedAt?: string;
+    extractedAt?: string | null;
 }
 
 // Store actions

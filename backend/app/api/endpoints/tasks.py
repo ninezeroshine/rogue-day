@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models import Task, Run, User, TaskStatus, RunStatus
@@ -74,7 +74,7 @@ async def start_task(
         raise HTTPException(status_code=400, detail="Task already started")
     
     task.status = TaskStatus.ACTIVE
-    task.started_at = datetime.utcnow()
+    task.started_at = datetime.now(timezone.utc)
     
     await db.flush()
     await db.refresh(task)
@@ -113,7 +113,7 @@ async def complete_task(
     
     # Update task
     task.status = TaskStatus.COMPLETED
-    task.completed_at = datetime.utcnow()
+    task.completed_at = datetime.now(timezone.utc)
     
     await db.flush()
     await db.refresh(task)
@@ -146,11 +146,12 @@ async def fail_task(
         # T3: lose 10% of daily XP
         penalty = int(run.daily_xp * 0.1)
         run.daily_xp = max(0, run.daily_xp - penalty)
+        run.penalty_xp += penalty
     # T2: energy already spent, just not returned
     
     # Update task
     task.status = TaskStatus.FAILED
-    task.completed_at = datetime.utcnow()
+    task.completed_at = datetime.now(timezone.utc)
     
     await db.flush()
     await db.refresh(task)

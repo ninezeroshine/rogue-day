@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useServerRunStore, useServerRun, useServerIsLoading, useServerError, useServerDailyXP, useServerTasks, useServerCurrentEnergy, useServerMaxEnergy } from '../store/useServerRunStore';
 import { useTelegram } from '../hooks/useTelegram';
 import { ServerTaskList } from '../components/run/ServerTaskList';
@@ -9,6 +9,7 @@ import { EnergyMeter } from '../components/run/EnergyMeter';
 import { XPCounter } from '../components/run/XPCounter';
 import { QuickStartCard } from '../components/run/QuickStartCard';
 import { PresetAppliedToast } from '../components/run/PresetAppliedToast';
+import { PresetPickerModal } from '../components/run/PresetPickerModal';
 import type { PresetApplyResponse } from '../lib/api';
 
 export function RunPage() {
@@ -46,6 +47,7 @@ export function RunPage() {
 
     const [showAddTask, setShowAddTask] = useState(false);
     const [showExtraction, setShowExtraction] = useState(false);
+    const [showPresetPicker, setShowPresetPicker] = useState(false);
     const [extractionResult, setExtractionResult] = useState<{
         finalXP: number;
         tasksCompleted: number;
@@ -264,15 +266,35 @@ export function RunPage() {
                 <ServerTaskList tasks={tasks} />
             </main>
 
-            {/* Add task FAB */}
-            <motion.button
-                onClick={() => setShowAddTask(true)}
-                className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-3xl font-bold shadow-lg flex items-center justify-center z-30 glow-success"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-            >
-                +
-            </motion.button>
+            {/* FAB Group */}
+            <div className="fixed bottom-24 right-6 z-30 flex flex-col gap-3 items-center">
+                {/* Preset picker FAB (secondary) */}
+                <AnimatePresence>
+                    {tasks.length > 0 && (
+                        <motion.button
+                            onClick={() => setShowPresetPicker(true)}
+                            className="w-12 h-12 rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] text-xl shadow-lg flex items-center justify-center"
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            whileHover={{ scale: 1.1, borderColor: 'var(--accent-secondary)' }}
+                            whileTap={{ scale: 0.9 }}
+                        >
+                            📦
+                        </motion.button>
+                    )}
+                </AnimatePresence>
+
+                {/* Add task FAB (primary) */}
+                <motion.button
+                    onClick={() => setShowAddTask(true)}
+                    className="w-16 h-16 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-3xl font-bold shadow-lg flex items-center justify-center glow-success"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                >
+                    +
+                </motion.button>
+            </div>
 
             {/* Modals */}
             {showAddTask && (
@@ -288,6 +310,14 @@ export function RunPage() {
                 isOpen={showExtraction}
                 onClose={() => setShowExtraction(false)}
                 onExtract={handleExtract}
+            />
+
+            {/* Preset picker modal */}
+            <PresetPickerModal
+                isOpen={showPresetPicker}
+                onClose={() => setShowPresetPicker(false)}
+                onApplied={handlePresetApplied}
+                currentEnergy={currentEnergy}
             />
 
             {/* Preset applied toast */}

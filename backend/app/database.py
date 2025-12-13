@@ -24,7 +24,11 @@ class Base(DeclarativeBase):
 
 
 async def get_db() -> AsyncSession:
-    """Dependency for getting database session."""
+    """Dependency for getting database session.
+    
+    Note: async with automatically closes the session on exit,
+    so explicit close() is not needed.
+    """
     async with async_session_maker() as session:
         try:
             yield session
@@ -32,5 +36,3 @@ async def get_db() -> AsyncSession:
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()

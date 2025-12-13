@@ -65,6 +65,7 @@ class Run(Base):
     # Run data
     run_date = Column(String(10), nullable=False)  # "2024-01-15"
     daily_xp = Column(Integer, default=0)
+    penalty_xp = Column(Integer, default=0)  # cumulative penalties applied during the run
     focus_energy = Column(Integer, default=50)
     max_energy = Column(Integer, default=50)
     total_focus_minutes = Column(Integer, default=0)
@@ -117,12 +118,30 @@ class Extraction(Base):
     
     # Extraction stats
     final_xp = Column(Integer, default=0)
+    xp_before_penalties = Column(Integer, default=0)
+    penalty_xp = Column(Integer, default=0)
     tasks_completed = Column(Integer, default=0)
     tasks_failed = Column(Integer, default=0)
+    tasks_total = Column(Integer, default=0)
     total_focus_minutes = Column(Integer, default=0)
+
+    # Tier breakdown (for Journal UI)
+    t1_completed = Column(Integer, default=0)
+    t2_completed = Column(Integer, default=0)
+    t3_completed = Column(Integer, default=0)
+    t1_failed = Column(Integer, default=0)
+    t2_failed = Column(Integer, default=0)
+    t3_failed = Column(Integer, default=0)
+
+    # Timer discipline (completed tasks)
+    completed_with_timer = Column(Integer, default=0)
+    completed_without_timer = Column(Integer, default=0)
     
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships (no DB migration needed for relationships)
+    run = relationship("Run")
 
 
 class TaskTemplate(Base):

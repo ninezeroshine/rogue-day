@@ -3,6 +3,7 @@ import api from '../lib/api';
 import type { RunResponse, TaskResponse, TaskCreate } from '../lib/api';
 import type { TierLevel } from './types';
 import { GAME_CONFIG } from '../lib/constants';
+import { useUserStore } from './useUserStore';
 
 /**
  * Server-synced run store.
@@ -131,6 +132,29 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
         try {
             const extraction = await api.run.extract(run.id);
             set({ run: null, isLoading: false });
+
+            // Persist extraction into local Journal (offline-friendly)
+            // This is intentionally side-effectful: JournalPage reads from useUserStore.extractionHistory
+            useUserStore.getState().addExtraction({
+                id: String(extraction.id),
+                runId: String(extraction.run_id),
+                finalXP: extraction.final_xp,
+                xpBeforePenalties: extraction.xp_before_penalties,
+                penaltyXP: extraction.penalty_xp,
+                tasksCompleted: extraction.tasks_completed,
+                tasksFailed: extraction.tasks_failed,
+                tasksTotal: extraction.tasks_total,
+                totalFocusMinutes: extraction.total_focus_minutes,
+                t1Completed: extraction.t1_completed,
+                t2Completed: extraction.t2_completed,
+                t3Completed: extraction.t3_completed,
+                t1Failed: extraction.t1_failed,
+                t2Failed: extraction.t2_failed,
+                t3Failed: extraction.t3_failed,
+                completedWithTimer: extraction.completed_with_timer,
+                completedWithoutTimer: extraction.completed_without_timer,
+                createdAt: extraction.created_at,
+            });
 
             return {
                 finalXP: extraction.final_xp,

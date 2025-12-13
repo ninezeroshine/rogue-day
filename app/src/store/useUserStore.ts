@@ -40,6 +40,7 @@ interface UserActions {
 
     // Stats
     addExtraction: (extraction: ExtractionResult) => void;
+    setExtractionHistory: (history: ExtractionResult[]) => void;
 
     // Settings
     updateSettings: (settings: Partial<UserSettings>) => void;
@@ -98,6 +99,11 @@ export const useUserStore = create<UserStore>()(
                     bestStreak: Math.max(state.bestStreak, state.currentStreak + 1),
                     extractionHistory: newHistory,
                 });
+            },
+
+            setExtractionHistory: (history: ExtractionResult[]) => {
+                // Trust server ordering; keep last 30 for storage limits
+                set({ extractionHistory: history.slice(0, 30) });
             },
 
             updateSettings: (newSettings: Partial<UserSettings>) => {

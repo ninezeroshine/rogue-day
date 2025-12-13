@@ -1,22 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from enum import Enum
 
-
-# ===== ENUMS =====
-
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class RunStatus(str, Enum):
-    ACTIVE = "active"
-    EXTRACTED = "extracted"
-    ABANDONED = "abandoned"
+# Import enums from models to avoid duplication
+from app.models import TaskStatus, RunStatus
 
 
 # ===== USER SCHEMAS =====
@@ -118,13 +105,32 @@ class ExtractionResponse(BaseModel):
     id: int
     run_id: int
     final_xp: int
+    xp_before_penalties: int = 0
+    penalty_xp: int = 0
     tasks_completed: int
     tasks_failed: int
+    tasks_total: int = 0
     total_focus_minutes: int
+    t1_completed: int = 0
+    t2_completed: int = 0
+    t3_completed: int = 0
+    t1_failed: int = 0
+    t2_failed: int = 0
+    t3_failed: int = 0
+    completed_with_timer: int = 0
+    completed_without_timer: int = 0
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+
+class JournalEntryResponse(BaseModel):
+    """Richer journal entry for a completed (extracted) run."""
+    extraction: ExtractionResponse
+    run_date: str
+    started_at: datetime
+    extracted_at: Optional[datetime] = None
 
 
 # ===== TASK TEMPLATE SCHEMAS =====

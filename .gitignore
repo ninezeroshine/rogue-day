@@ -26,6 +26,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Local DB / runtime artifacts
+*.db
+.cursor/
+
+# Local machine helpers (keep repo clean)
+add-pip-to-path.ps1
+
 # Testing
 coverage/
 

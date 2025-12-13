@@ -24,19 +24,6 @@ async def list_templates(
     category: str | None = None,
 ):
     """List all task templates for user."""
-    # #region agent log
-    import json
-    import os
-    import time
-    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
-    try:
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-        log_data = {"location": "templates.py:21", "message": "list_templates entry", "data": {"user_id": user.id, "category": category}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_data) + "\n")
-    except Exception:
-        pass
-    # #endregion
     query = select(TaskTemplate).where(TaskTemplate.user_id == user.id)
     if category:
         query = query.where(TaskTemplate.category == category)
@@ -44,29 +31,7 @@ async def list_templates(
     
     result = await db.execute(query)
     templates = result.scalars().all()
-    # #region agent log
-    import os
-    import time
-    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
-    try:
-        template_details = [{"id": t.id, "title": t.title, "user_id": t.user_id} for t in templates]
-        log_data2 = {"location": "templates.py:45", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates], "templates": template_details}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "I"}
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_data2) + "\n")
-        print(f"[TEMPLATES] User {user.id}: Found {len(templates)} templates: {[t.id for t in templates]}")
-    except Exception as e:
-        print(f"[TEMPLATES] Logging error: {e}")
-    # #endregion
     response_data = [TaskTemplateResponse.model_validate(t) for t in templates]
-    # #region agent log
-    try:
-        log_data3 = {"location": "templates.py:58", "message": "list_templates response", "data": {"user_id": user.id, "response_count": len(response_data), "response_ids": [t.id for t in response_data]}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "I"}
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_data3) + "\n")
-        print(f"[TEMPLATES] User {user.id}: Returning {len(response_data)} templates in response")
-    except Exception:
-        pass
-    # #endregion
     return response_data
 
 
@@ -77,19 +42,6 @@ async def create_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new task template manually."""
-    # #region agent log
-    import json
-    import os
-    import time
-    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
-    try:
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-        log_data = {"location": "templates.py:62", "message": "create_template entry", "data": {"user_id": user.id, "title": data.title, "tier": data.tier}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "G"}
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_data) + "\n")
-    except Exception:
-        pass
-    # #endregion
     # Validate tier
     if data.tier not in [1, 2, 3]:
         raise HTTPException(status_code=400, detail="Invalid tier (must be 1, 2, or 3)")
@@ -106,14 +58,6 @@ async def create_template(
     db.add(template)
     await db.flush()
     await db.refresh(template)
-    # #region agent log
-    try:
-        log_data2 = {"location": "templates.py:85", "message": "create_template created", "data": {"user_id": user.id, "template_id": template.id, "title": template.title}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run2", "hypothesisId": "G"}
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_data2) + "\n")
-    except Exception:
-        pass
-    # #endregion
     
     return TaskTemplateResponse.model_validate(template)
 

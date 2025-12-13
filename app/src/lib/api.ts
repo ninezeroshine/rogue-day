@@ -23,8 +23,7 @@ const getTelegramUserId = (): number | null => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         return window.Telegram.WebApp.initDataUnsafe.user.id;
     }
-    // Dev mode fallback
-    return 123456789;
+    return null;
 };
 
 interface ApiOptions {
@@ -34,11 +33,6 @@ interface ApiOptions {
 
 async function apiRequest<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { method = 'GET', body } = options;
-
-    // #region agent log
-    const logEntry = { location: 'api.ts:29', message: 'apiRequest entry', data: { endpoint, method, hasBody: !!body }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' };
-    fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logEntry) }).catch(() => {});
-    // #endregion
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -58,28 +52,14 @@ async function apiRequest<T>(endpoint: string, options: ApiOptions = {}): Promis
         url.searchParams.set('telegram_id', telegramId.toString());
     }
 
-    // #region agent log
-    const logBeforeFetch = { location: 'api.ts:52', message: 'apiRequest before fetch', data: { finalUrl: url.toString(), hasInitData: !!initData, telegramId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' };
-    fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logBeforeFetch) }).catch(() => {});
-    // #endregion
-
     const response = await fetch(url.toString(), {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    // #region agent log
-    const logAfterFetch = { location: 'api.ts:60', message: 'apiRequest after fetch', data: { status: response.status, statusText: response.statusText, ok: response.ok, endpoint }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' };
-    fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logAfterFetch) }).catch(() => {});
-    // #endregion
-
     if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        // #region agent log
-        const logError = { location: 'api.ts:66', message: 'apiRequest error', data: { status: response.status, error, endpoint }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' };
-        fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logError) }).catch(() => {});
-        // #endregion
         throw new Error(error.detail || `API Error: ${response.status}`);
     }
 
@@ -295,34 +275,9 @@ export interface TaskTemplateCreate {
 
 export const templateApi = {
     list: async (category?: string): Promise<TaskTemplateResponse[]> => {
-        // #region agent log
-        const logData = { location: 'api.ts:272', message: 'template.list called', data: { category }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' };
-        fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(() => {});
-        console.log('[API] template.list() called, category:', category);
-        // #endregion
         const params = category ? `?category=${category}` : '';
         const url = `/api/v1/templates/${params}`;
-        // #region agent log
-        const logData2 = { location: 'api.ts:276', message: 'template.list URL formed', data: { url, params, category }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' };
-        fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData2) }).catch(() => {});
-        console.log('[API] template.list() URL:', url);
-        // #endregion
-        try {
-            const result = await apiRequest<TaskTemplateResponse[]>(url);
-            // #region agent log
-            const logData3 = { location: 'api.ts:305', message: 'template.list response', data: { count: result.length, ids: result.map(t => t.id), templates: result }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'J' };
-            fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData3) }).catch(() => {});
-            console.log('[API] template.list() success:', result.length, 'templates', result);
-            // #endregion
-            return result;
-        } catch (error) {
-            // #region agent log
-            const logData4 = { location: 'api.ts:312', message: 'template.list error', data: { error: String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'J' };
-            fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData4) }).catch(() => {});
-            // #endregion
-            console.error('[API] template.list() error:', error);
-            throw error;
-        }
+        return apiRequest<TaskTemplateResponse[]>(url);
     },
 
     create: async (data: TaskTemplateCreate): Promise<TaskTemplateResponse> => {
@@ -368,19 +323,7 @@ export interface PresetApplyResponse {
 
 export const presetApi = {
     list: async (): Promise<PresetResponse[]> => {
-        // #region agent log
-        const logData = { location: 'api.ts:319', message: 'preset.list called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' };
-        fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(() => {});
-        console.log('[API] preset.list() called');
-        // #endregion
-        try {
-            const result = await apiRequest<PresetResponse[]>('/api/v1/presets/');
-            console.log('[API] preset.list() success:', result.length, 'presets');
-            return result;
-        } catch (error) {
-            console.error('[API] preset.list() error:', error);
-            throw error;
-        }
+        return apiRequest<PresetResponse[]>('/api/v1/presets/');
     },
 
     create: async (data: PresetCreate): Promise<PresetResponse> => {
@@ -396,10 +339,6 @@ export const presetApi = {
     },
 
     apply: async (presetId: number): Promise<PresetApplyResponse> => {
-        // #region agent log
-        const logData = { location: 'api.ts:335', message: 'preset.apply called', data: { presetId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' };
-        fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(() => {});
-        // #endregion
         return apiRequest(`/api/v1/presets/${presetId}/apply`, { method: 'POST' });
     },
 

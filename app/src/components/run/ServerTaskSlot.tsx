@@ -142,12 +142,12 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
         switch (task.status) {
             case 'pending':
                 return (
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             <span className="text-2xl flex-shrink-0">{tierEmoji}</span>
                             <div className="min-w-0">
                                 <div className="font-medium truncate">{task.title}</div>
-                                <div className="text-sm text-[var(--text-muted)] flex items-center gap-2">
+                                <div className="text-sm text-[var(--text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                                         style={{
                                             backgroundColor: `${tierColor}20`,
@@ -164,20 +164,22 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                             </div>
                         </div>
 
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex gap-2 w-full sm:w-auto sm:flex-shrink-0 sm:justify-end">
                             <motion.button
                                 onClick={handleStart}
                                 disabled={isProcessing}
-                                className="btn btn-primary text-sm py-2 px-4"
+                                className="btn btn-primary flex-1 sm:flex-none"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                ▶ Начать
+                                <span aria-hidden>▶</span>
+                                <span className="sm:hidden">Старт</span>
+                                <span className="hidden sm:inline">Начать</span>
                             </motion.button>
                             <motion.button
                                 onClick={handleRemove}
                                 disabled={isProcessing}
-                                className="btn btn-secondary text-sm py-2 px-3"
+                                className="btn btn-secondary w-12 sm:w-auto"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
@@ -235,11 +237,11 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                             </span>
                         </div>
 
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-2 justify-end w-full flex-wrap">
                             <motion.button
                                 onClick={handleComplete}
                                 disabled={isProcessing}
-                                className="btn btn-primary text-sm py-2 px-6 glow-success"
+                                className="btn btn-primary glow-success"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
@@ -249,7 +251,7 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
                                 <motion.button
                                     onClick={handleFail}
                                     disabled={isProcessing}
-                                    className="btn btn-danger text-sm py-2 px-4"
+                                    className="btn btn-danger"
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >

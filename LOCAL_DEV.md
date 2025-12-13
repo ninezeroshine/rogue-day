@@ -22,8 +22,12 @@ pip install -e ".[dev]"
 Создайте файл `backend/.env`:
 
 ```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/rogue_day
+# Database (use SQLite for easier local dev, or PostgreSQL)
+# Option 1: SQLite (easiest, no setup needed)
+DATABASE_URL=sqlite+aiosqlite:///./rogue_day.db
+
+# Option 2: PostgreSQL (if you have it installed)
+# DATABASE_URL=postgresql://user:password@localhost:5432/rogue_day
 
 # Telegram (можно оставить пустым для dev mode)
 TELEGRAM_BOT_TOKEN=your_bot_token_here

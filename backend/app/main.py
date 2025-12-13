@@ -22,13 +22,26 @@ async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             from sqlalchemy import text
-            # Check existing tables using SQL query
-            result = await conn.execute(text("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public'
-            """))
-            existing_tables = {row[0] for row in result}
+            # Check if SQLite or PostgreSQL
+            is_sqlite = settings.database_url.startswith("sqlite")
+            
+            if is_sqlite:
+                # SQLite: use sqlite_master instead of information_schema
+                result = await conn.execute(text("""
+                    SELECT name 
+                    FROM sqlite_master 
+                    WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                """))
+                existing_tables = {row[0] for row in result}
+            else:
+                # PostgreSQL: use information_schema
+                result = await conn.execute(text("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                """))
+                existing_tables = {row[0] for row in result}
+            
             expected_tables = {"users", "runs", "tasks", "extractions", "task_templates", "presets", "preset_templates"}
             missing_tables = expected_tables - existing_tables
             

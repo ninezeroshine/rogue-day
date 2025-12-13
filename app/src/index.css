@@ -116,6 +116,20 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
 }
 
+/* Mobile compactness for TMA widths (evidence: vw≈404 leads to oversized buttons) */
+@media (max-width: 420px) {
+  .card {
+    padding: 0.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .btn {
+    padding: 0.55rem 0.9rem;
+    border-radius: 0.65rem;
+    font-size: 0.8125rem;
+  }
+}
+
 .btn-primary {
   background: var(--accent-primary);
   color: var(--bg-primary);

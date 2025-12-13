@@ -2,7 +2,9 @@
  * API Client for Rogue-Day Backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://rogue-day-production.up.railway.app';
+// Detect local development mode
+const isLocalDev = import.meta.env.DEV && (import.meta.env.VITE_API_URL?.includes('localhost') || import.meta.env.VITE_API_URL?.includes('127.0.0.1'));
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalDev ? 'http://localhost:8000' : 'https://rogue-day-production.up.railway.app');
 
 // Get Telegram WebApp if available
 const getTelegramInitData = (): string | null => {
@@ -303,9 +305,17 @@ export const templateApi = {
         // #endregion
         try {
             const result = await apiRequest<TaskTemplateResponse[]>(url);
-            console.log('[API] template.list() success:', result.length, 'templates');
+            // #region agent log
+            const logData3 = { location: 'api.ts:305', message: 'template.list response', data: { count: result.length, ids: result.map(t => t.id), templates: result }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'J' };
+            fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData3) }).catch(() => {});
+            console.log('[API] template.list() success:', result.length, 'templates', result);
+            // #endregion
             return result;
         } catch (error) {
+            // #region agent log
+            const logData4 = { location: 'api.ts:312', message: 'template.list error', data: { error: String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'J' };
+            fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData4) }).catch(() => {});
+            // #endregion
             console.error('[API] template.list() error:', error);
             throw error;
         }

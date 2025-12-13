@@ -16,7 +16,7 @@ from app.api.endpoints.auth import validate_telegram_data
 
 # Dev mode flag for local development without Telegram
 ALLOW_DEV_MODE = os.getenv("ALLOW_DEV_MODE", "false").lower() == "true"
-DEV_TELEGRAM_ID = 123456789
+DEV_TELEGRAM_ID = int(os.getenv("DEV_TELEGRAM_ID", "123456789"))
 
 
 async def get_current_user(
@@ -61,10 +61,21 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found. Please register first."
-        )
+        # Auto-create dev user in dev mode
+        if ALLOW_DEV_MODE and telegram_id == DEV_TELEGRAM_ID:
+            user = User(
+                telegram_id=telegram_id,
+                username="dev_user",
+                first_name="Dev User",
+            )
+            db.add(user)
+            await db.flush()
+            await db.refresh(user)
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found. Please register first."
+            )
     
     return user
 
@@ -88,15 +99,25 @@ async def get_current_user_optional(
         telegram_id = DEV_TELEGRAM_ID
     
     if telegram_id is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or missing Telegram authentication"
-        )
+        return None  # Return None instead of raising error for optional auth
     
     result = await db.execute(
         select(User).where(User.telegram_id == telegram_id)
     )
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+    
+    # Auto-create dev user in dev mode if not exists
+    if not user and ALLOW_DEV_MODE and telegram_id == DEV_TELEGRAM_ID:
+        user = User(
+            telegram_id=telegram_id,
+            username="dev_user",
+            first_name="Dev User",
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+    
+    return user
 
 
 def get_telegram_id_from_init_data(

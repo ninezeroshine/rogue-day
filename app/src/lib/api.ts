@@ -295,7 +295,7 @@ export const templateApi = {
         console.log('[API] template.list() called, category:', category);
         // #endregion
         const params = category ? `?category=${category}` : '';
-        const url = `/api/v1/templates${params}`;
+        const url = `/api/v1/templates/${params}`;
         // #region agent log
         const logData2 = { location: 'api.ts:276', message: 'template.list URL formed', data: { url, params, category }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' };
         fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData2) }).catch(() => {});

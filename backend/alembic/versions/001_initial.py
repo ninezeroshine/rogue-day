@@ -17,6 +17,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect, text
 
 
 # revision identifiers, used by Alembic.
@@ -26,10 +27,18 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if table exists in database."""
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade() -> None:
     # === USERS ===
-    op.create_table(
-        'users',
+    if not table_exists('users'):
+        op.create_table(
+            'users',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('telegram_id', sa.Integer(), unique=True, index=True, nullable=False),
         sa.Column('username', sa.String(100), nullable=True),
@@ -46,11 +55,12 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(timezone=True), onupdate=sa.func.now()),
         sa.Column('last_run_at', sa.DateTime(timezone=True), nullable=True),
-    )
+        )
     
     # === RUNS ===
-    op.create_table(
-        'runs',
+    if not table_exists('runs'):
+        op.create_table(
+            'runs',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('run_date', sa.String(10), nullable=False),
@@ -61,13 +71,14 @@ def upgrade() -> None:
         sa.Column('status', sa.String(20), default='active'),
         sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('extracted_at', sa.DateTime(timezone=True), nullable=True),
-    )
-    op.create_index('ix_runs_user_status', 'runs', ['user_id', 'status'])
-    op.create_index('ix_runs_user_date', 'runs', ['user_id', 'run_date'])
+        )
+        op.create_index('ix_runs_user_status', 'runs', ['user_id', 'status'])
+        op.create_index('ix_runs_user_date', 'runs', ['user_id', 'run_date'])
     
     # === TASKS ===
-    op.create_table(
-        'tasks',
+    if not table_exists('tasks'):
+        op.create_table(
+            'tasks',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('run_id', sa.Integer(), sa.ForeignKey('runs.id', ondelete='CASCADE'), nullable=False),
         sa.Column('title', sa.String(255), nullable=False),
@@ -80,12 +91,13 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
-    )
-    op.create_index('ix_tasks_run_status', 'tasks', ['run_id', 'status'])
+        )
+        op.create_index('ix_tasks_run_status', 'tasks', ['run_id', 'status'])
     
     # === EXTRACTIONS ===
-    op.create_table(
-        'extractions',
+    if not table_exists('extractions'):
+        op.create_table(
+            'extractions',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('run_id', sa.Integer(), sa.ForeignKey('runs.id', ondelete='CASCADE'), nullable=False),
@@ -94,11 +106,12 @@ def upgrade() -> None:
         sa.Column('tasks_failed', sa.Integer(), default=0),
         sa.Column('total_focus_minutes', sa.Integer(), default=0),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+        )
     
     # === TASK TEMPLATES ===
-    op.create_table(
-        'task_templates',
+    if not table_exists('task_templates'):
+        op.create_table(
+            'task_templates',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('title', sa.String(255), nullable=False),
@@ -110,12 +123,13 @@ def upgrade() -> None:
         sa.Column('times_used', sa.Integer(), default=0),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(timezone=True), onupdate=sa.func.now()),
-    )
-    op.create_index('ix_task_templates_user', 'task_templates', ['user_id'])
+        )
+        op.create_index('ix_task_templates_user', 'task_templates', ['user_id'])
     
     # === PRESETS ===
-    op.create_table(
-        'presets',
+    if not table_exists('presets'):
+        op.create_table(
+            'presets',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('name', sa.String(100), nullable=False),
@@ -123,18 +137,19 @@ def upgrade() -> None:
         sa.Column('is_favorite', sa.Boolean(), default=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(timezone=True), onupdate=sa.func.now()),
-    )
-    op.create_index('ix_presets_user', 'presets', ['user_id'])
+        )
+        op.create_index('ix_presets_user', 'presets', ['user_id'])
     
     # === PRESET TEMPLATES (junction) ===
-    op.create_table(
-        'preset_templates',
+    if not table_exists('preset_templates'):
+        op.create_table(
+            'preset_templates',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
         sa.Column('preset_id', sa.Integer(), sa.ForeignKey('presets.id', ondelete='CASCADE'), nullable=False),
         sa.Column('template_id', sa.Integer(), sa.ForeignKey('task_templates.id', ondelete='CASCADE'), nullable=False),
         sa.Column('order', sa.Integer(), default=0),
-    )
-    op.create_index('ix_preset_templates_preset', 'preset_templates', ['preset_id'])
+        )
+        op.create_index('ix_preset_templates_preset', 'preset_templates', ['preset_id'])
 
 
 def downgrade() -> None:

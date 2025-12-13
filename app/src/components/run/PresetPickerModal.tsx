@@ -4,8 +4,28 @@ import { useHaptic } from '../../hooks/useTelegram';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { 
     IconX, IconPreset, IconTemplate, IconStar, IconEnergy, IconTimer, IconRun, IconPlus,
-    IconTier1, IconTier2, IconTier3, IconInfo
+    IconTier1, IconTier2, IconTier3, IconInfo, IconRocket, IconTrophy, IconFire, IconCalendar, IconBook,
+    type IconProps
 } from '../../lib/icons';
+
+// Preset icons mapping (same as TemplatesPage)
+const PRESET_ICON_MAP: Record<string, FC<IconProps>> = {
+    target: IconRun,
+    rocket: IconRocket,
+    trophy: IconTrophy,
+    fire: IconFire,
+    energy: IconEnergy,
+    star: IconStar,
+    calendar: IconCalendar,
+    book: IconBook,
+    preset: IconPreset,
+    template: IconTemplate,
+};
+
+function getPresetIcon(iconId: string | null): FC<IconProps> {
+    if (!iconId) return IconPreset;
+    return PRESET_ICON_MAP[iconId] ?? IconPreset;
+}
 import api from '../../lib/api';
 import type { PresetResponse, TaskTemplateResponse, PresetApplyResponse } from '../../lib/api';
 
@@ -327,8 +347,11 @@ const PresetCard = memo(function PresetCard({
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] flex items-center justify-center text-xl flex-shrink-0">
-                        {preset.emoji || <IconPreset size={20} className="text-[var(--text-muted)]" />}
+                    <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/15 flex items-center justify-center flex-shrink-0">
+                        {(() => {
+                            const PresetIcon = getPresetIcon(preset.emoji);
+                            return <PresetIcon size={20} color="var(--accent-primary)" />;
+                        })()}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

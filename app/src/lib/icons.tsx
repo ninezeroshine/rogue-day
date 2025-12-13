@@ -64,7 +64,7 @@ import { memo, type FC } from 'react';
 
 // ===== ICON WRAPPER =====
 
-interface IconProps extends Omit<LucideProps, 'ref'> {
+export interface IconProps extends Omit<LucideProps, 'ref'> {
     size?: number | string;
     color?: string;
     className?: string;

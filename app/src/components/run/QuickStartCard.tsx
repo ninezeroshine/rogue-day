@@ -2,7 +2,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useServerRunStore } from '../../store/useServerRunStore';
-import { IconEnergy, IconStar } from '../../lib/icons';
+import { 
+    IconEnergy, IconStar, IconPreset, IconRun, IconRocket, IconTrophy, IconFire, 
+    IconCalendar, IconBook, IconTemplate,
+    type IconProps
+} from '../../lib/icons';
+import type { FC } from 'react';
+
+// Preset icons mapping
+const PRESET_ICON_MAP: Record<string, FC<IconProps>> = {
+    target: IconRun,
+    rocket: IconRocket,
+    trophy: IconTrophy,
+    fire: IconFire,
+    energy: IconEnergy,
+    star: IconStar,
+    calendar: IconCalendar,
+    book: IconBook,
+    preset: IconPreset,
+    template: IconTemplate,
+};
+
+function getPresetIcon(iconId: string | null): FC<IconProps> {
+    if (!iconId) return IconPreset;
+    return PRESET_ICON_MAP[iconId] ?? IconPreset;
+}
 import api from '../../lib/api';
 import type { PresetResponse, PresetApplyResponse } from '../../lib/api';
 
@@ -90,7 +114,10 @@ export function QuickStartCard({ onApplied }: QuickStartCardProps) {
                             }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            <span>{preset.emoji || '📋'}</span>
+                            {(() => {
+                                const PresetIcon = getPresetIcon(preset.emoji);
+                                return <PresetIcon size={16} color="var(--accent-primary)" />;
+                            })()}
                             <span>{preset.name}</span>
                             <span className="text-xs text-[var(--text-muted)]">
                                 ({preset.templates.length})

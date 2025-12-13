@@ -292,14 +292,23 @@ export const templateApi = {
         // #region agent log
         const logData = { location: 'api.ts:272', message: 'template.list called', data: { category }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' };
         fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(() => {});
+        console.log('[API] template.list() called, category:', category);
         // #endregion
         const params = category ? `?category=${category}` : '';
         const url = `/api/v1/templates${params}`;
         // #region agent log
         const logData2 = { location: 'api.ts:276', message: 'template.list URL formed', data: { url, params, category }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' };
         fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData2) }).catch(() => {});
+        console.log('[API] template.list() URL:', url);
         // #endregion
-        return apiRequest(url);
+        try {
+            const result = await apiRequest<TaskTemplateResponse[]>(url);
+            console.log('[API] template.list() success:', result.length, 'templates');
+            return result;
+        } catch (error) {
+            console.error('[API] template.list() error:', error);
+            throw error;
+        }
     },
 
     create: async (data: TaskTemplateCreate): Promise<TaskTemplateResponse> => {
@@ -348,8 +357,16 @@ export const presetApi = {
         // #region agent log
         const logData = { location: 'api.ts:319', message: 'preset.list called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' };
         fetch('http://127.0.0.1:7242/ingest/fe2f8581-aef0-4e79-a7b4-aa9c2698f4ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(() => {});
+        console.log('[API] preset.list() called');
         // #endregion
-        return apiRequest('/api/v1/presets/');
+        try {
+            const result = await apiRequest<PresetResponse[]>('/api/v1/presets/');
+            console.log('[API] preset.list() success:', result.length, 'presets');
+            return result;
+        } catch (error) {
+            console.error('[API] preset.list() error:', error);
+            throw error;
+        }
     },
 
     create: async (data: PresetCreate): Promise<PresetResponse> => {

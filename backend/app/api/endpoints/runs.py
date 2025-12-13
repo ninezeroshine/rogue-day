@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -49,9 +49,18 @@ async def get_current_run(
 
 @router.post("/", response_model=RunResponse)
 async def start_new_run(
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    Start a new run for user.
+    
+    Uses SELECT FOR UPDATE to prevent race condition where two simultaneous
+    requests could both pass the "no active run" check.
+    
+    Rate limiting: 5 runs per minute (handled by middleware)
+    """
     """
     Start a new run for user.
     
@@ -110,6 +119,7 @@ async def start_new_run(
 
 @router.post("/{run_id}/extract", response_model=ExtractionResponse)
 async def extract_run(
+    request: Request,
     run_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

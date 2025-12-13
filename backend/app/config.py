@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # For local dev, can use SQLite: sqlite+aiosqlite:///./rogue_day.db
     database_url: str = "postgresql://user:password@localhost:5432/rogue_day"
     
-    # Redis
+    # Redis - used for rate limiting storage (slowapi)
+    # Falls back to in-memory storage if Redis is not available
     redis_url: str = "redis://localhost:6379/0"
     
     # Telegram

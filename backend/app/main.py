@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.api.router import api_router
@@ -74,6 +77,40 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Rate limiter - use user ID from Telegram initData if available, otherwise IP
+def get_rate_limit_key(request: Request) -> str:
+    """Get rate limit key from Telegram user ID or IP address."""
+    # Try to get Telegram user ID from initData header
+    init_data = request.headers.get("X-Telegram-Init-Data")
+    if init_data:
+        # Parse user ID from initData (simplified - full validation happens in dependencies)
+        try:
+            from urllib.parse import parse_qs
+            parsed = parse_qs(init_data)
+            user_data = parsed.get('user', [None])[0]
+            if user_data:
+                import json
+                user = json.loads(user_data)
+                user_id = user.get('id')
+                if user_id:
+                    return f"user:{user_id}"
+        except Exception:
+            pass
+    
+    # Fallback to IP address
+    return get_remote_address(request)
+
+# Initialize rate limiter
+# Use Redis if available, otherwise in-memory storage
+storage_uri = settings.redis_url if settings.redis_url.startswith("redis") else "memory://"
+limiter = Limiter(
+    key_func=get_rate_limit_key,
+    default_limits=["1000/hour", "200/minute"],  # Generous limits for normal usage
+    storage_uri=storage_uri,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(

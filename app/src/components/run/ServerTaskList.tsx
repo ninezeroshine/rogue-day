@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ServerTaskSlot } from './ServerTaskSlot';
 import type { TaskResponse } from '../../lib/api';
@@ -8,10 +9,13 @@ interface ServerTaskListProps {
 
 export function ServerTaskList({ tasks }: ServerTaskListProps) {
     // Sort: active first, then pending, then completed/failed
-    const sortedTasks = [...tasks].sort((a, b) => {
-        const order = { active: 0, pending: 1, completed: 2, failed: 3 };
-        return order[a.status] - order[b.status];
-    });
+    // Memoize to avoid recreating array on each render
+    const sortedTasks = useMemo(() => {
+        return [...tasks].sort((a, b) => {
+            const order = { active: 0, pending: 1, completed: 2, failed: 3 };
+            return order[a.status] - order[b.status];
+        });
+    }, [tasks]);
 
     if (tasks.length === 0) {
         return (

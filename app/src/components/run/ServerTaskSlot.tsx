@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useTimer } from '../../hooks/useTimer';
@@ -37,7 +37,7 @@ function calculateRemainingSeconds(task: TaskResponse): number {
     return Math.max(0, remaining);
 }
 
-export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
+function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
     const { impact, notification } = useHaptic();
     const [isProcessing, setIsProcessing] = useState(false);
     const [savedAsTemplate, setSavedAsTemplate] = useState(false);
@@ -387,3 +387,11 @@ export function ServerTaskSlot({ task }: ServerTaskSlotProps) {
         </motion.div>
     );
 }
+
+// Memoize component to prevent re-renders when task hasn't changed
+export const ServerTaskSlot = memo(ServerTaskSlotComponent, (prevProps, nextProps) => {
+    // Only re-render if task.id changed or task object reference changed
+    // This prevents unnecessary re-renders when other tasks in the list update
+    return prevProps.task.id === nextProps.task.id && 
+           prevProps.task === nextProps.task;
+});

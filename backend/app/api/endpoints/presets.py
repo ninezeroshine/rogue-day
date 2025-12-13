@@ -23,6 +23,29 @@ from app.core.game_config import TIER_CONFIG, calculate_xp
 router = APIRouter()
 
 
+async def _validate_templates(
+    template_ids: list[int],
+    user_id: int,
+    db: AsyncSession
+) -> dict[int, TaskTemplate]:
+    """
+    Validate and load all templates in one query (prevents N+1).
+    Returns dict mapping template_id -> TaskTemplate.
+    """
+    if not template_ids:
+        return {}
+    
+    result = await db.execute(
+        select(TaskTemplate)
+        .where(
+            TaskTemplate.id.in_(template_ids),
+            TaskTemplate.user_id == user_id
+        )
+    )
+    templates = result.scalars().all()
+    return {t.id: t for t in templates}
+
+
 def _preset_to_response(preset: Preset) -> PresetResponse:
     """Convert Preset ORM model to response schema."""
     sorted_links = sorted(preset.template_links, key=lambda x: x.order)
@@ -76,20 +99,18 @@ async def create_preset(
     db.add(preset)
     await db.flush()
     
-    # Add templates if provided
-    for idx, template_id in enumerate(data.template_ids):
-        # Verify template belongs to user
-        template_result = await db.execute(
-            select(TaskTemplate)
-            .where(TaskTemplate.id == template_id, TaskTemplate.user_id == user.id)
-        )
-        if template_result.scalar_one_or_none():
-            link = PresetTemplate(
-                preset_id=preset.id,
-                template_id=template_id,
-                order=idx,
-            )
-            db.add(link)
+    # Add templates if provided - load all in one query
+    if data.template_ids:
+        templates_dict = await _validate_templates(data.template_ids, user.id, db)
+        
+        for idx, template_id in enumerate(data.template_ids):
+            if template_id in templates_dict:
+                link = PresetTemplate(
+                    preset_id=preset.id,
+                    template_id=template_id,
+                    order=idx,
+                )
+                db.add(link)
     
     await db.flush()
     
@@ -156,19 +177,18 @@ async def update_preset(
     if data.is_favorite is not None:
         preset.is_favorite = data.is_favorite
     
-    # Update templates if provided
+    # Update templates if provided - load all in one query
     if data.template_ids is not None:
         # Remove existing links
         for link in preset.template_links:
             await db.delete(link)
         
+        # Validate and load all templates in one query
+        templates_dict = await _validate_templates(data.template_ids, user.id, db)
+        
         # Add new links
         for idx, template_id in enumerate(data.template_ids):
-            template_result = await db.execute(
-                select(TaskTemplate)
-                .where(TaskTemplate.id == template_id, TaskTemplate.user_id == user.id)
-            )
-            if template_result.scalar_one_or_none():
+            if template_id in templates_dict:
                 link = PresetTemplate(
                     preset_id=preset.id,
                     template_id=template_id,

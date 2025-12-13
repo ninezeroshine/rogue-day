@@ -71,7 +71,7 @@ export function useSync() {
     // To get photo, you need to use Bot API getUserProfilePhotos on backend
     const photoUrl = null;
 
-    // User stats from server - memoized to prevent infinite loops
+    // User stats from server - memoized to prevent creating new object on each render
     const stats = useMemo(() => state.user?.stats || {
         total_xp: 0,
         total_extractions: 0,
@@ -81,8 +81,9 @@ export function useSync() {
         best_streak: 0,
     }, [state.user?.stats]);
 
-    // Memoize the entire return object to prevent new references
-    return useMemo(() => ({
+    // Return object - no need for useMemo here as all dependencies are stable
+    // (displayName, username are primitives, initialize is useCallback)
+    return {
         ...state,
         displayName,
         username,
@@ -91,7 +92,7 @@ export function useSync() {
         isTMA,
         telegramUser,
         refetch: initialize,
-    }), [state, displayName, username, photoUrl, stats, isTMA, telegramUser, initialize]);
+    };
 }
 
 /**
@@ -154,8 +155,8 @@ export function useRunSync() {
         await api.task.delete(taskId);
     }, []);
 
-    // Memoize to prevent new references on each render
-    return useMemo(() => ({
+    // Return object - no need for useMemo as all functions are already useCallback
+    return {
         isSyncing,
         startRun,
         extractRun,
@@ -164,5 +165,5 @@ export function useRunSync() {
         completeTask,
         failTask,
         deleteTask,
-    }), [isSyncing, startRun, extractRun, addTask, startTask, completeTask, failTask, deleteTask]);
+    };
 }

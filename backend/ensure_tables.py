@@ -11,7 +11,7 @@ sys.path.append(os.getcwd())
 
 try:
     from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy import text, inspect
+    from sqlalchemy import text
 except ImportError:
     print("❌ SQLAlchemy not installed or environment not active.")
     sys.exit(1)
@@ -36,9 +36,13 @@ async def ensure_tables():
         async with engine.begin() as conn:
             print("✅ Connection successful!")
             
-            # Get inspector to check existing tables
-            inspector = inspect(conn.sync_engine)
-            existing_tables = set(inspector.get_table_names())
+            # Check existing tables using SQL query
+            result = await conn.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """))
+            existing_tables = {row[0] for row in result}
             
             print(f"\n📊 Existing tables: {sorted(existing_tables)}")
             
@@ -58,8 +62,12 @@ async def ensure_tables():
                 await conn.run_sync(Base.metadata.create_all)
                 
                 # Verify creation
-                inspector = inspect(conn.sync_engine)
-                new_tables = set(inspector.get_table_names())
+                result = await conn.execute(text("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                """))
+                new_tables = {row[0] for row in result}
                 still_missing = expected_tables - new_tables
                 
                 if still_missing:

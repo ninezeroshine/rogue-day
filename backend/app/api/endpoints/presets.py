@@ -48,9 +48,16 @@ async def list_presets(
     """List all presets for user with their templates."""
     # #region agent log
     import json
-    log_data = {"location": "presets.py:44", "message": "list_presets entry", "data": {"user_id": user.id}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "D"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "presets.py:44", "message": "list_presets entry", "data": {"user_id": user.id}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "D"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
     # #endregion
     result = await db.execute(
         select(Preset)
@@ -63,9 +70,15 @@ async def list_presets(
     )
     presets = result.scalars().all()
     # #region agent log
-    log_data2 = {"location": "presets.py:59", "message": "list_presets result", "data": {"user_id": user.id, "presets_count": len(presets), "preset_ids": [p.id for p in presets], "presets_with_templates": [{"id": p.id, "templates_count": len(p.template_links)} for p in presets]}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "D"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data2) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        log_data2 = {"location": "presets.py:59", "message": "list_presets result", "data": {"user_id": user.id, "presets_count": len(presets), "preset_ids": [p.id for p in presets], "presets_with_templates": [{"id": p.id, "templates_count": len(p.template_links)} for p in presets]}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "D"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
     # #endregion
     
     return [_preset_to_response(p) for p in presets]
@@ -127,9 +140,16 @@ async def get_preset(
     """Get a single preset by ID."""
     # #region agent log
     import json
-    log_data = {"location": "presets.py:110", "message": "get_preset entry", "data": {"preset_id": preset_id, "user_id": user.id}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "presets.py:110", "message": "get_preset entry", "data": {"preset_id": preset_id, "user_id": user.id}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
     # #endregion
     result = await db.execute(
         select(Preset)
@@ -141,9 +161,15 @@ async def get_preset(
     )
     preset = result.scalar_one_or_none()
     # #region agent log
-    log_data2 = {"location": "presets.py:125", "message": "get_preset result", "data": {"preset_id": preset_id, "user_id": user.id, "preset_found": preset is not None, "preset_name": preset.name if preset else None, "templates_count": len(preset.template_links) if preset else 0}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data2) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        log_data2 = {"location": "presets.py:125", "message": "get_preset result", "data": {"preset_id": preset_id, "user_id": user.id, "preset_found": preset is not None, "preset_name": preset.name if preset else None, "templates_count": len(preset.template_links) if preset else 0}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
     # #endregion
     
     if not preset:
@@ -229,9 +255,16 @@ async def apply_preset(
     """
     # #region agent log
     import json
-    log_data = {"location": "presets.py:195", "message": "apply_preset entry", "data": {"preset_id": preset_id, "user_id": user.id}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "presets.py:195", "message": "apply_preset entry", "data": {"preset_id": preset_id, "user_id": user.id}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
     # #endregion
     # Get preset with templates
     result = await db.execute(
@@ -244,9 +277,15 @@ async def apply_preset(
     )
     preset = result.scalar_one_or_none()
     # #region agent log
-    log_data2 = {"location": "presets.py:217", "message": "apply_preset preset lookup", "data": {"preset_id": preset_id, "user_id": user.id, "preset_found": preset is not None, "preset_name": preset.name if preset else None, "templates_count": len(preset.template_links) if preset else 0}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data2) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        log_data2 = {"location": "presets.py:217", "message": "apply_preset preset lookup", "data": {"preset_id": preset_id, "user_id": user.id, "preset_found": preset is not None, "preset_name": preset.name if preset else None, "templates_count": len(preset.template_links) if preset else 0}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
     # #endregion
     
     if not preset:

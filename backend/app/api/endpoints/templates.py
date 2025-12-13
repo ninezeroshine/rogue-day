@@ -26,9 +26,16 @@ async def list_templates(
     """List all task templates for user."""
     # #region agent log
     import json
-    log_data = {"location": "templates.py:21", "message": "list_templates entry", "data": {"user_id": user.id, "category": category}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        log_data = {"location": "templates.py:21", "message": "list_templates entry", "data": {"user_id": user.id, "category": category}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data) + "\n")
+    except Exception:
+        pass
     # #endregion
     query = select(TaskTemplate).where(TaskTemplate.user_id == user.id)
     if category:
@@ -38,9 +45,15 @@ async def list_templates(
     result = await db.execute(query)
     templates = result.scalars().all()
     # #region agent log
-    log_data2 = {"location": "templates.py:33", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates]}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
-    with open("c:\\Users\\Farzona\\Desktop\\rogue-like\\rogue-day\\.cursor\\debug.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_data2) + "\n")
+    import os
+    import time
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".cursor", "debug.log")
+    try:
+        log_data2 = {"location": "templates.py:33", "message": "list_templates result", "data": {"user_id": user.id, "templates_count": len(templates), "template_ids": [t.id for t in templates]}, "timestamp": time.time() * 1000, "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data2) + "\n")
+    except Exception:
+        pass
     # #endregion
     return [TaskTemplateResponse.model_validate(t) for t in templates]
 

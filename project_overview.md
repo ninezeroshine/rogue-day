@@ -1,6 +1,6 @@
-# Rogue-Day: Technical Overview для Senior Developer
+# Rogue-Day: Technical Overview
 
-> **TL;DR:** Telegram Mini App — геймифицированный планировщик задач с Roguelike-механиками. React/Vite + FastAPI + PostgreSQL. Каждый день = новый "ран", задачи = XP/энергия, в конце дня — "эвакуация" прогресса.
+> **TL;DR:** Telegram Mini App — геймифицированный планировщик задач с Roguelike-механиками. React 19/Vite 7 + FastAPI + PostgreSQL. Каждый день = новый "ран", задачи = XP/энергия, в конце дня — "эвакуация" прогресса.
 
 ---
 
@@ -28,19 +28,21 @@
 ### Frontend
 | Технология | Версия | Назначение |
 |------------|--------|------------|
-| **React** | 18.x | UI Library |
-| **Vite** | 5.x | Build tool, HMR |
-| **TypeScript** | 5.x | Типизация |
-| **Zustand** | 5.x | State management (server-synced) |
-| **Framer Motion** | 11.x | Анимации (AnimatePresence, layout) |
-| **Telegram WebApp SDK** | - | Mini App API (`window.Telegram.WebApp`) |
+| **React** | 19.x | UI Library |
+| **Vite** | 7.x | Build tool, HMR |
+| **TypeScript** | 5.9 | Строгая типизация |
+| **Zustand** | 5.x | Server-synced state |
+| **Framer Motion** | 12.x | Анимации (AnimatePresence, layout) |
+| **Tailwind CSS** | 4.x | Utility-first CSS |
+| **Lucide React** | 0.513 | Система иконок |
+| **@twa-dev/sdk** | 8.x | Telegram Mini App API |
 
 **Хостинг:** Vercel (auto-deploy из main)
 
 ### Backend
 | Технология | Версия | Назначение |
 |------------|--------|------------|
-| **FastAPI** | 0.100+ | Async Python API framework |
+| **FastAPI** | 0.109+ | Async Python API framework |
 | **SQLAlchemy** | 2.x | Async ORM (`asyncpg`) |
 | **PostgreSQL** | 15+ | Primary DB |
 | **Pydantic** | 2.x | Validation, schemas |
@@ -61,21 +63,24 @@ rogue-day/
 ├── app/                          # Frontend (React/Vite)
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── run/              # Task slots, modals, meters
+│   │   │   ├── layout/           # AppLayout, BottomTabBar
+│   │   │   ├── run/              # Task slots, modals, meters
+│   │   │   └── journal/          # JournalDayCard, JournalEntryModal
 │   │   ├── hooks/
-│   │   │   ├── useTelegram.ts    # TMA SDK wrapper
+│   │   │   ├── useTelegram.ts    # TMA SDK wrapper + HapticFeedback
 │   │   │   ├── useTimer.ts       # Countdown timer
 │   │   │   └── useSync.ts        # Backend sync
 │   │   ├── lib/
 │   │   │   ├── api.ts            # HTTP client
-│   │   │   └── constants.ts      # Game config (TIER_CONFIG)
+│   │   │   ├── constants.ts      # Game config (TIER_CONFIG)
+│   │   │   └── icons.tsx         # Centralized Lucide icons
 │   │   ├── pages/
 │   │   │   ├── RunPage.tsx       # Main game screen
-│   │   │   ├── ProfilePage.tsx   # User stats
-│   │   │   └── JournalPage.tsx   # History
+│   │   │   ├── TemplatesPage.tsx # Templates & presets
+│   │   │   ├── JournalPage.tsx   # History by days
+│   │   │   └── ProfilePage.tsx   # User stats & settings
 │   │   └── store/
-│   │       ├── useRunStore.ts    # Local-first state (persist)
-│   │       └── useServerRunStore.ts  # Server-synced state (единственный store)
+│   │       └── useServerRunStore.ts  # Server-synced state
 │   └── vite.config.ts
 │
 └── backend/                      # Backend (FastAPI)
@@ -85,8 +90,10 @@ rogue-day/
         │       ├── auth.py       # Telegram initData validation
         │       ├── users.py      # CRUD пользователей
         │       ├── runs.py       # Lifecycle ранов
-        │       └── tasks.py      # Task actions (create/start/complete/fail)
-        ├── models.py             # SQLAlchemy ORM (User, Run, Task, Extraction)
+        │       ├── tasks.py      # Task actions
+        │       ├── templates.py  # Task templates
+        │       └── presets.py    # Template presets
+        ├── models.py             # SQLAlchemy ORM
         ├── schemas.py            # Pydantic request/response
         ├── database.py           # Async session factory
         ├── config.py             # Settings from .env
@@ -131,7 +138,7 @@ PENDING → [start] → ACTIVE → [complete/fail] → COMPLETED/FAILED
 3. Backend валидирует HMAC-SHA256 с bot_token
 4. Извлекает `user.id` из parsed data
 
-**✅ Исправлено:** Все эндпоинты теперь используют `get_current_user` dependency, которая валидирует `initData` через HMAC-SHA256 и проверяет `auth_date` (24h expiration).
+Все эндпоинты используют `get_current_user` dependency с HMAC-SHA256 валидацией и проверкой `auth_date` (24h expiration).
 
 ---
 
@@ -152,63 +159,40 @@ PENDING → [start] → ACTIVE → [complete/fail] → COMPLETED/FAILED
                  │                          │ use_timer   │  │
                  │    ┌─────────────┐       └─────────────┘  │
                  │    │ extractions │                        │
-                 │    ├─────────────┤                        │
-                 └───►│ user_id(FK) │                        │
-                      │ run_id (FK) │◄───────────────────────┘
-                      │ final_xp    │
-                      │ tasks_*     │
-                      └─────────────┘
+                 │    ├─────────────┤       ┌─────────────┐  │
+                 └───►│ user_id(FK) │       │ templates   │  │
+                      │ run_id (FK) │◄──────│ presets     │  │
+                      │ final_xp    │       └─────────────┘  │
+                      │ tasks_*     │                        │
+                      └─────────────┘◄───────────────────────┘
 ```
 
 ---
 
-## 🔄 Data Flow
+## 🎨 Дизайн-система
 
+### Иконки
+Централизованная система иконок на базе **Lucide React**:
+- Расположение: `app/src/lib/icons.tsx`
+- Экспортирует типизированные компоненты: `IconRun`, `IconEnergy`, `IconTier1`, etc.
+- Цветовая система: `iconColors.primary`, `iconColors.xp`, etc.
+
+### CSS Variables
+```css
+--accent-primary: #00FF88;    /* Зелёный основной */
+--accent-secondary: #00D4FF;  /* Голубой */
+--accent-xp: #FFD700;         /* Золотой для XP */
+--accent-warning: #FF6B35;    /* Оранжевый */
+--accent-danger: #FF4757;     /* Красный */
+--bg-primary: #0D0D0D;        /* Фон */
+--bg-card: #1A1A2E;           /* Карточки */
 ```
-┌──────────────┐     HTTP + Header      ┌──────────────┐
-│   Frontend   │  ─────────────────────►│   Backend    │
-│  (Zustand)   │   X-Telegram-Init-Data │  (FastAPI)   │
-│              │◄───────────────────────│              │
-└──────────────┘      JSON Response     └──────────────┘
-       │                                       │
-       ▼                                       ▼
-┌──────────────┐                        ┌──────────────┐
-│ localStorage │                        │  PostgreSQL  │
-│  (persist)   │                        │              │
-└──────────────┘                        └──────────────┘
-```
 
-**Паттерн:** Optimistic UI с server reconciliation
-- Действия сначала обновляют UI
-- Затем синхронизируются с сервером
-- При ошибке — откат
-
----
-
-## 🚀 Deployment
-
-### Frontend (Vercel)
-```json
-// vercel.json
-{
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
-```
-- Auto-deploy из `main` branch
-- Environment: `VITE_API_URL`
-
-### Backend (Railway)
-```toml
-# railway.toml
-[build]
-builder = "NIXPACKS"
-buildCommand = "pip install -e ."
-
-[deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-```
-- Managed PostgreSQL addon
-- Environment: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `CORS_ORIGINS`
+### Анимации
+- **Framer Motion** для всех анимаций
+- `AnimatePresence` для входа/выхода компонентов
+- `layout` prop для анимации изменения размеров
+- Staggered animations с `delay` для списков
 
 ---
 
@@ -222,29 +206,17 @@ startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 | GET | `/api/v1/runs/current` | Активный ран |
 | POST | `/api/v1/runs/` | Начать новый ран |
 | POST | `/api/v1/runs/{id}/extract` | Эвакуация |
+| GET | `/api/v1/runs/journal` | История экстракций |
 | POST | `/api/v1/tasks/` | Создать задачу |
 | POST | `/api/v1/tasks/{id}/start` | Начать задачу |
 | POST | `/api/v1/tasks/{id}/complete` | Завершить |
 | POST | `/api/v1/tasks/{id}/fail` | Провалить |
 | DELETE | `/api/v1/tasks/{id}` | Удалить pending |
-
----
-
-## 🎨 UI/UX особенности
-
-- **Тёмная тема** — Telegram native palette (`var(--tg-theme-*)`)
-- **Haptic feedback** — `HapticFeedback.impactOccurred()` на действиях
-- **Анимации** — Framer Motion для карточек задач, XP counter
-- **Localization** — Русский язык (hardcoded)
-
----
-
-## 📊 Метрики (планируемые)
-
-- Retention Day 1/7/30
-- Avg tasks per run
-- Extraction rate (vs abandon)
-- T3 task success rate
+| GET | `/api/v1/templates/` | Список шаблонов |
+| POST | `/api/v1/templates/` | Создать шаблон |
+| GET | `/api/v1/presets/` | Список пресетов |
+| POST | `/api/v1/presets/` | Создать пресет |
+| POST | `/api/v1/presets/{id}/apply` | Применить пресет |
 
 ---
 
@@ -255,28 +227,3 @@ startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 3. **Loot System** — награды за стрики
 4. **Achievements** — бейджи
 5. **Analytics Dashboard** — статистика продуктивности
-
----
-
-## ⚠️ Исправленные проблемы (из code_review.md)
-
-| Проблема | Статус | Решение |
-|----------|--------|---------|
-| 🔴 Auth: telegram_id без валидации | ✅ **Исправлено** | `get_current_user` dependency с HMAC |
-| 🔴 XP расчёт `duration/5` | ✅ **Исправлено** | `duration/duration_min` |
-| 🔴 Streak всегда +1 | ✅ **Исправлено** | Проверка `last_run_at` |
-| 🟠 Дублирование TIER_CONFIG | ✅ **Исправлено** | Централизованный `game_config.py` |
-| 🟠 Два Zustand store | ✅ **Исправлено** | Удалён `useRunStore`, остался `useServerRunStore` |
-| 🟡 Нет DB индексов | ✅ **Исправлено** | Добавлены `ix_runs_*`, `ix_tasks_*` |
-| 🟢 OpenAPI codegen | ✅ **Исправлено** | `npm run generate:api` |
-
----
-
-## 🔮 Roadmap (запланировано)
-
-1. **Boss Fights** — коллективные цели, урон за T3 задачи (потребует Event-driven)
-2. **Co-op Raids** — групповые челленджи
-3. **Loot System** — награды за стрики
-4. **Achievements** — бейджи
-5. **Analytics Dashboard** — статистика продуктивности
-

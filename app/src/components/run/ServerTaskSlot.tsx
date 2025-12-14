@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useCallback, memo, useRef, useEffect } from 'react';
+import { useState, useCallback, memo, useRef } from 'react';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useServerTimer } from '../../hooks/useTimer';
@@ -148,7 +148,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
     };
 
     // Slower transition for smoother feel
-    const contentTransition = { duration: 0.25, ease: 'easeOut' };
+    const contentTransition = { duration: 0.25, ease: 'easeOut' as const };
 
     // Render based on status
     const renderContent = () => {
@@ -365,7 +365,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 <span>Шаблон</span>
                             </motion.button>
                         ) : (
-                            <motion.span 
+                            <motion.span
                                 className="text-xs text-[var(--accent-primary)] flex items-center gap-1"
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}

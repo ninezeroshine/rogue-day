@@ -28,7 +28,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
         const successRate = Math.round((entry.tasksCompleted / total) * 100);
 
         // Time formatting
-        const extractTime = entry.extractedAt 
+        const extractTime = entry.extractedAt
             ? new Date(entry.extractedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
             : null;
 
@@ -51,6 +51,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                 <>
                     {/* Backdrop */}
                     <motion.div
+                        key="journal-entry-backdrop"
                         className="fixed inset-0 bg-black/85 backdrop-blur-sm z-40"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -60,6 +61,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
 
                     {/* Modal */}
                     <motion.div
+                        key="journal-entry-modal"
                         className="fixed inset-0 z-50 flex items-center justify-center p-4"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -83,7 +85,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                 >
                                     <IconX size={16} />
                                 </motion.button>
-                                
+
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="w-10 h-10 rounded-xl bg-[var(--accent-xp)]/10 flex items-center justify-center">
                                         <IconExtraction size={22} color="var(--accent-xp)" />
@@ -102,7 +104,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                 <div className="mt-4 flex items-end justify-between">
                                     <div>
                                         <div className="text-xs text-[var(--text-muted)] mb-1">Добыто XP</div>
-                                        <motion.div 
+                                        <motion.div
                                             className="text-4xl font-bold font-mono"
                                             style={{ color: 'var(--accent-xp)' }}
                                             initial={{ scale: 0.8, opacity: 0 }}
@@ -118,7 +120,7 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                         )}
                                     </div>
                                     <div className="text-right">
-                                        <div 
+                                        <div
                                             className="text-2xl font-bold"
                                             style={{ color: model.successRate >= 80 ? 'var(--accent-primary)' : model.successRate >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)' }}
                                         >
@@ -154,21 +156,21 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                         </span>
                                     </div>
                                     <div className="h-3 w-full rounded-full overflow-hidden flex bg-[var(--bg-secondary)]">
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: model.wCompleted }}
                                             transition={{ delay: 0.2, duration: 0.4 }}
                                             style={{ background: 'var(--accent-primary)' }}
                                             className="h-full"
                                         />
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: model.wFailed }}
                                             transition={{ delay: 0.3, duration: 0.4 }}
                                             style={{ background: 'var(--accent-danger)' }}
                                             className="h-full"
                                         />
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: model.wPending }}
                                             transition={{ delay: 0.4, duration: 0.4 }}
@@ -207,9 +209,9 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                             const total = row.c + row.f;
                                             if (total === 0) return null;
                                             const maxTotal = Math.max(1, total);
-                                            
+
                                             return (
-                                                <motion.div 
+                                                <motion.div
                                                     key={row.tier}
                                                     className="flex items-center gap-3"
                                                     initial={{ opacity: 0, x: -10 }}
@@ -220,19 +222,19 @@ export const JournalEntryModal = memo(function JournalEntryModal({
                                                         <row.Icon size={16} color={row.color} style={{ opacity: row.opacity }} />
                                                     </div>
                                                     <div className="flex-1 h-2 rounded-full overflow-hidden flex bg-[var(--bg-secondary)]">
-                                                        <div 
-                                                            style={{ 
-                                                                width: `${(row.c / maxTotal) * 100}%`, 
-                                                                background: row.color, 
-                                                                opacity: row.opacity 
-                                                            }} 
+                                                        <div
+                                                            style={{
+                                                                width: `${(row.c / maxTotal) * 100}%`,
+                                                                background: row.color,
+                                                                opacity: row.opacity
+                                                            }}
                                                             className="h-full"
                                                         />
-                                                        <div 
-                                                            style={{ 
-                                                                width: `${(row.f / maxTotal) * 100}%`, 
-                                                                background: 'var(--accent-danger)' 
-                                                            }} 
+                                                        <div
+                                                            style={{
+                                                                width: `${(row.f / maxTotal) * 100}%`,
+                                                                background: 'var(--accent-danger)'
+                                                            }}
                                                             className="h-full"
                                                         />
                                                     </div>

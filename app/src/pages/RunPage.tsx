@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useServerRunStore, useServerRun, useServerIsLoading, useServerError, useServerDailyXP, useServerTasks, useServerCurrentEnergy, useServerMaxEnergy } from '../store/useServerRunStore';
-import { useTelegram } from '../hooks/useTelegram';
+import { useTelegram, useHaptic } from '../hooks/useTelegram';
 import { ServerTaskList } from '../components/run/ServerTaskList';
 import { ServerAddTaskModal } from '../components/run/ServerAddTaskModal';
 import { ExtractionModal } from '../components/run/ExtractionModal';
@@ -10,8 +10,8 @@ import { XPCounter } from '../components/run/XPCounter';
 import { QuickStartCard } from '../components/run/QuickStartCard';
 import { PresetAppliedToast } from '../components/run/PresetAppliedToast';
 import { PresetPickerModal } from '../components/run/PresetPickerModal';
-import { 
-    IconEnergy, IconRun, IconMedal, IconXP, IconCheckCircle, 
+import {
+    IconEnergy, IconRun, IconMedal, IconXP, IconCheckCircle,
     IconClock, IconRocket, IconExtraction, IconPreset, IconPlus, IconWarning
 } from '../lib/icons';
 import type { PresetApplyResponse } from '../lib/api';
@@ -84,13 +84,20 @@ export function RunPage() {
         }
     }, [isReady, loadCurrentRun]);
 
+    // Haptic feedback - use the dedicated hook
+    const { impact, notification } = useHaptic();
+
     const handleStartRun = async () => {
+        impact('medium');
         await startNewRun();
+        notification('success');
     };
 
     const handleExtract = async () => {
+        impact('medium');
         const result = await extractRunAction();
         if (result) {
+            notification('success');
             setExtractionResult({
                 finalXP: result.finalXP,
                 tasksCompleted: result.tasksCompleted,
@@ -101,8 +108,10 @@ export function RunPage() {
     };
 
     const handleNewRun = async () => {
+        impact('medium');
         setExtractionResult(null);
         await startNewRun();
+        notification('success');
     };
 
     // Loading state
@@ -110,7 +119,7 @@ export function RunPage() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <motion.div 
+                    <motion.div
                         className="mb-4 flex justify-center"
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
@@ -152,7 +161,7 @@ export function RunPage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                 >
-                    <motion.div 
+                    <motion.div
                         className="w-24 h-24 rounded-full bg-[var(--accent-xp)]/15 flex items-center justify-center mb-6"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -225,7 +234,7 @@ export function RunPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <motion.div 
+                    <motion.div
                         className="w-24 h-24 rounded-full bg-[var(--accent-primary)]/15 flex items-center justify-center mb-6"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}

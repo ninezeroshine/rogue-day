@@ -5,8 +5,8 @@
 // Detect local development mode
 // Use VITE_API_URL if set, otherwise default to localhost in dev mode or production URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || (
-    import.meta.env.DEV 
-        ? 'http://localhost:8000' 
+    import.meta.env.DEV
+        ? 'http://localhost:8000'
         : 'https://rogue-day-production.up.railway.app'
 );
 
@@ -18,18 +18,16 @@ const getTelegramInitData = (): string | null => {
     return null;
 };
 
-// Get Telegram user ID for dev mode
-const getTelegramUserId = (): number | null => {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        return window.Telegram.WebApp.initDataUnsafe.user.id;
-    }
-    return null;
-};
-
 interface ApiOptions {
     method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
     body?: unknown;
 }
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function apiRequest<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { method = 'GET', body } = options;
@@ -38,32 +36,64 @@ async function apiRequest<T>(endpoint: string, options: ApiOptions = {}): Promis
         'Content-Type': 'application/json',
     };
 
-    // Add Telegram init data for auth
+    // Add Telegram init data for auth (single source of truth - no query params)
     const initData = getTelegramInitData();
     if (initData) {
         headers['X-Telegram-Init-Data'] = initData;
     }
 
-    const url = new URL(`${API_BASE_URL}${endpoint}`);
+    const url = `${API_BASE_URL}${endpoint}`;
+    let lastError: Error | null = null;
 
-    // Add telegram_id as query param for now (simplified auth)
-    const telegramId = getTelegramUserId();
-    if (telegramId) {
-        url.searchParams.set('telegram_id', telegramId.toString());
+    // Retry loop with exponential backoff
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            const response = await fetch(url, {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : undefined,
+            });
+
+            if (response.ok) {
+                return response.json();
+            }
+
+            // Get error details
+            const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+            const errorMessage = errorData.detail || `API Error: ${response.status}`;
+
+            // Retry on 429 (rate limit) or 5xx server errors
+            if (response.status === 429 || response.status >= 500) {
+                lastError = new Error(errorMessage);
+                if (attempt < MAX_RETRIES - 1) {
+                    const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+                    console.warn(`[API] Retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms: ${errorMessage}`);
+                    await sleep(delay);
+                    continue;
+                }
+            }
+
+            // Don't retry on 4xx (client errors) - they won't change
+            throw new Error(errorMessage);
+
+        } catch (err) {
+            // Network errors - retry with backoff
+            if (err instanceof TypeError && err.message.includes('fetch')) {
+                lastError = new Error('Network error. Check your connection.');
+                if (attempt < MAX_RETRIES - 1) {
+                    const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+                    console.warn(`[API] Network retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`);
+                    await sleep(delay);
+                    continue;
+                }
+            }
+
+            // Re-throw non-network errors immediately
+            throw err;
+        }
     }
 
-    const response = await fetch(url.toString(), {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(error.detail || `API Error: ${response.status}`);
-    }
-
-    return response.json();
+    throw lastError || new Error('Request failed after retries');
 }
 
 // ===== USER API =====

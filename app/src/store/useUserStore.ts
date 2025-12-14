@@ -34,11 +34,22 @@ interface UserState {
     settings: UserSettings;
 }
 
+// Server stats sync - single source of truth from backend
+interface ServerStats {
+    totalXP: number;
+    totalExtractions: number;
+    totalTasksCompleted: number;
+    totalFocusMinutes: number;
+    currentStreak: number;
+    bestStreak: number;
+}
+
 interface UserActions {
     // Profile
     setTelegramUser: (id: number, username?: string) => void;
 
-    // Stats
+    // Stats - server is source of truth
+    syncWithServer: (stats: ServerStats) => void;
     addExtraction: (extraction: ExtractionResult) => void;
     setExtractionHistory: (history: ExtractionResult[]) => void;
 
@@ -83,22 +94,24 @@ export const useUserStore = create<UserStore>()(
                 set({ telegramId: id, username: username || null });
             },
 
+            // Sync stats from server - this is the source of truth
+            syncWithServer: (stats: ServerStats) => {
+                set({
+                    totalXP: stats.totalXP,
+                    totalExtractions: stats.totalExtractions,
+                    totalTasksCompleted: stats.totalTasksCompleted,
+                    totalFocusMinutes: stats.totalFocusMinutes,
+                    currentStreak: stats.currentStreak,
+                    bestStreak: stats.bestStreak,
+                });
+            },
+
             addExtraction: (extraction: ExtractionResult) => {
                 const state = get();
 
-                // Update history (keep last 30)
+                // Only update history - stats come from server via syncWithServer
                 const newHistory = [extraction, ...state.extractionHistory].slice(0, 30);
-
-                // Update stats
-                set({
-                    totalXP: state.totalXP + extraction.finalXP,
-                    totalExtractions: state.totalExtractions + 1,
-                    totalTasksCompleted: state.totalTasksCompleted + extraction.tasksCompleted,
-                    totalFocusMinutes: state.totalFocusMinutes + extraction.totalFocusMinutes,
-                    currentStreak: state.currentStreak + 1,
-                    bestStreak: Math.max(state.bestStreak, state.currentStreak + 1),
-                    extractionHistory: newHistory,
-                });
+                set({ extractionHistory: newHistory });
             },
 
             setExtractionHistory: (history: ExtractionResult[]) => {

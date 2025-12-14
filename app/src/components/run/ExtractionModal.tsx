@@ -34,6 +34,7 @@ export function ExtractionModal({ isOpen, onClose, onExtract }: ExtractionModalP
                 <>
                     {/* Backdrop */}
                     <motion.div
+                        key="extraction-backdrop"
                         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -43,13 +44,14 @@ export function ExtractionModal({ isOpen, onClose, onExtract }: ExtractionModalP
 
                     {/* Modal */}
                     <motion.div
+                        key="extraction-modal"
                         className="fixed inset-0 z-50 flex items-center justify-center p-4"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                     >
                         <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-default)] max-w-sm w-full text-center">
-                            <motion.div 
+                            <motion.div
                                 className="w-20 h-20 rounded-full bg-[var(--accent-xp)]/15 flex items-center justify-center mx-auto mb-4"
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}

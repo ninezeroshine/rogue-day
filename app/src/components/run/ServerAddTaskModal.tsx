@@ -106,6 +106,7 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
         <AnimatePresence>
             {/* Backdrop */}
             <motion.div
+                key="add-task-backdrop"
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -115,6 +116,7 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
 
             {/* Modal */}
             <motion.div
+                key="add-task-modal"
                 className="fixed bottom-0 left-0 right-0 z-50 p-4"
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
@@ -169,7 +171,7 @@ export function ServerAddTaskModal({ onClose, currentEnergy, totalFocusMinutes =
                                             borderColor: isSelected ? tierColor : undefined,
                                         }}
                                     >
-                                        <div 
+                                        <div
                                             className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
                                             style={{ backgroundColor: `${tierColor}15` }}
                                         >

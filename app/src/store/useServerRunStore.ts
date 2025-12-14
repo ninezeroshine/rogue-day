@@ -6,13 +6,28 @@ import { GAME_CONFIG } from '../lib/constants';
 import { useUserStore } from './useUserStore';
 
 /**
- * Server-synced run store.
- * All operations go through the backend API.
+ * Server-synced run store with optimistic updates.
+ * 
+ * Optimistic Update Pattern:
+ * 1. Immediately update local state
+ * 2. Send request to server in background
+ * 3. On success: replace optimistic data with server response
+ * 4. On error: rollback to previous state
  */
+
+// Extended task type with optimistic marker
+interface OptimisticTask extends TaskResponse {
+    _optimistic?: boolean;
+    _previousStatus?: TaskResponse['status'];
+}
+
+interface OptimisticRun extends Omit<RunResponse, 'tasks'> {
+    tasks: OptimisticTask[];
+}
 
 interface ServerRunState {
     // Data from server
-    run: RunResponse | null;
+    run: OptimisticRun | null;
     isLoading: boolean;
     error: string | null;
 
@@ -36,6 +51,8 @@ interface ServerRunState {
     isTierUnlocked: (tier: TierLevel) => boolean;
 }
 
+
+
 export const useServerRunStore = create<ServerRunState>((set, get) => ({
     run: null,
     isLoading: false,
@@ -45,7 +62,7 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const run = await api.run.getCurrent();
-            set({ run, isLoading: false });
+            set({ run: run as OptimisticRun, isLoading: false });
             return run;
         } catch (err) {
             // No active run is not an error
@@ -58,7 +75,7 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const run = await api.run.startNew();
-            set({ run, isLoading: false });
+            set({ run: run as OptimisticRun, isLoading: false });
             return run;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to start run';
@@ -68,10 +85,13 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
         }
     },
 
+    // addTask: Non-optimistic approach to preserve animations
+    // Status changes (start/complete/fail) remain optimistic since they don't change IDs
     addTask: async (taskData) => {
         try {
+            // Send to server first
             const task = await api.task.create(taskData);
-            // Refresh run to get updated state
+            // Refresh to get updated run state (includes new task with stable ID)
             await get().refreshRun();
             return task;
         } catch (err) {
@@ -81,41 +101,185 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
     },
 
     startTask: async (taskId) => {
+        const { run } = get();
+        if (!run) return null;
+
+        const task = run.tasks.find(t => t.id === taskId);
+        if (!task || task.status !== 'pending') return null;
+
+        // Optimistic update: set status to active, deduct energy
+        const optimisticStartedAt = new Date().toISOString();
+        set({
+            run: {
+                ...run,
+                tasks: run.tasks.map(t =>
+                    t.id === taskId
+                        ? { ...t, status: 'active' as const, started_at: optimisticStartedAt, _previousStatus: t.status }
+                        : t
+                ),
+                // Deduct energy when starting task (T2/T3 cost energy)
+                focus_energy: run.focus_energy - task.energy_cost,
+            },
+        });
+
         try {
-            const task = await api.task.start(taskId);
-            await get().refreshRun();
-            return task;
+            const serverTask = await api.task.start(taskId);
+
+            // Update with server response
+            set(state => {
+                if (!state.run) return state;
+                return {
+                    run: {
+                        ...state.run,
+                        tasks: state.run.tasks.map(t =>
+                            t.id === taskId ? { ...serverTask, _optimistic: false } : t
+                        ),
+                    },
+                };
+            });
+
+            return serverTask;
         } catch (err) {
             console.error('Failed to start task:', err);
+
+            // Rollback to previous status and restore energy
+            set(state => {
+                if (!state.run) return state;
+                return {
+                    run: {
+                        ...state.run,
+                        tasks: state.run.tasks.map(t =>
+                            t.id === taskId
+                                ? { ...t, status: t._previousStatus ?? 'pending', started_at: null }
+                                : t
+                        ),
+                        // Restore energy on rollback
+                        focus_energy: state.run.focus_energy + task.energy_cost,
+                    },
+                };
+            });
+
             return null;
         }
     },
 
     completeTask: async (taskId) => {
+        const { run } = get();
+        if (!run) return null;
+
+        const task = run.tasks.find(t => t.id === taskId);
+        if (!task) return null;
+
+        // Optimistic update: mark as completed, add XP, restore energy, add focus minutes
+        // Energy was deducted at start - restore it on SUCCESS (but not on fail)
+        set({
+            run: {
+                ...run,
+                tasks: run.tasks.map(t =>
+                    t.id === taskId
+                        ? { ...t, status: 'completed' as const, completed_at: new Date().toISOString(), _previousStatus: t.status }
+                        : t
+                ),
+                daily_xp: run.daily_xp + task.xp_earned,
+                focus_energy: Math.min(run.max_energy, run.focus_energy + task.energy_cost),
+                total_focus_minutes: run.total_focus_minutes + task.duration,
+            },
+        });
+
         try {
-            const task = await api.task.complete(taskId);
+            const serverTask = await api.task.complete(taskId);
+
+            // Sync with server state
             await get().refreshRun();
-            return task;
+
+            return serverTask;
         } catch (err) {
             console.error('Failed to complete task:', err);
+
+            // Rollback: revert XP, energy, and focus minutes
+            set(state => {
+                if (!state.run) return state;
+
+                return {
+                    run: {
+                        ...state.run,
+                        tasks: state.run.tasks.map(t =>
+                            t.id === taskId
+                                ? { ...t, status: t._previousStatus ?? 'active', completed_at: null }
+                                : t
+                        ),
+                        daily_xp: state.run.daily_xp - task.xp_earned,
+                        focus_energy: state.run.focus_energy - task.energy_cost,
+                        total_focus_minutes: state.run.total_focus_minutes - task.duration,
+                    },
+                };
+            });
+
             return null;
         }
     },
 
     failTask: async (taskId) => {
+        const { run } = get();
+        if (!run) return null;
+
+        const task = run.tasks.find(t => t.id === taskId);
+        if (!task) return null;
+
+        // Calculate penalty for T3
+        const penalty = task.tier === 3 ? Math.floor(run.daily_xp * 0.1) : 0;
+
+        // Optimistic update: mark as failed, apply penalty
+        set({
+            run: {
+                ...run,
+                tasks: run.tasks.map(t =>
+                    t.id === taskId
+                        ? { ...t, status: 'failed' as const, completed_at: new Date().toISOString(), _previousStatus: t.status }
+                        : t
+                ),
+                daily_xp: Math.max(0, run.daily_xp - penalty),
+            },
+        });
+
         try {
-            const task = await api.task.fail(taskId);
+            const serverTask = await api.task.fail(taskId);
+
+            // Sync with server state
             await get().refreshRun();
-            return task;
+
+            return serverTask;
         } catch (err) {
             console.error('Failed to fail task:', err);
+
+            // Rollback
+            set(state => {
+                if (!state.run) return state;
+                return {
+                    run: {
+                        ...state.run,
+                        tasks: state.run.tasks.map(t =>
+                            t.id === taskId
+                                ? { ...t, status: t._previousStatus ?? 'active', completed_at: null }
+                                : t
+                        ),
+                        daily_xp: state.run.daily_xp + penalty,
+                    },
+                };
+            });
+
             return null;
         }
     },
 
+    // deleteTask: Non-optimistic to preserve exit animations  
     deleteTask: async (taskId) => {
+        const { run } = get();
+        if (!run) return false;
+
         try {
             await api.task.delete(taskId);
+            // Refresh to let AnimatePresence handle exit animation
             await get().refreshRun();
             return true;
         } catch (err) {
@@ -134,7 +298,6 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
             set({ run: null, isLoading: false });
 
             // Persist extraction into local Journal (offline-friendly)
-            // This is intentionally side-effectful: JournalPage reads from useUserStore.extractionHistory
             useUserStore.getState().addExtraction({
                 id: String(extraction.id),
                 runId: String(extraction.run_id),
@@ -156,6 +319,21 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
                 createdAt: extraction.created_at,
             });
 
+            // Sync user stats with server
+            try {
+                const freshUser = await api.user.getMe();
+                useUserStore.getState().syncWithServer({
+                    totalXP: freshUser.stats.total_xp,
+                    totalExtractions: freshUser.stats.total_extractions,
+                    totalTasksCompleted: freshUser.stats.total_tasks_completed,
+                    totalFocusMinutes: freshUser.stats.total_focus_minutes,
+                    currentStreak: freshUser.stats.current_streak,
+                    bestStreak: freshUser.stats.best_streak,
+                });
+            } catch (syncErr) {
+                console.warn('Failed to sync user stats:', syncErr);
+            }
+
             return {
                 finalXP: extraction.final_xp,
                 tasksCompleted: extraction.tasks_completed,
@@ -172,7 +350,7 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
     refreshRun: async () => {
         try {
             const run = await api.run.getCurrent();
-            set({ run });
+            set({ run: run as OptimisticRun });
         } catch {
             // Ignore - might not have active run
         }
@@ -190,7 +368,7 @@ export const useServerRunStore = create<ServerRunState>((set, get) => ({
 // GOOD: use useShallow or select primitives
 
 // Stable constants
-const EMPTY_TASKS: any[] = [];
+const EMPTY_TASKS: TaskResponse[] = [];
 
 export const useServerRun = () => useServerRunStore(state => state.run);
 export const useServerIsLoading = () => useServerRunStore(state => state.isLoading);

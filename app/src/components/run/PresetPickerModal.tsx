@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '../../hooks/useTelegram';
 import { useServerRunStore } from '../../store/useServerRunStore';
-import { 
+import {
     IconX, IconPreset, IconTemplate, IconStar, IconEnergy, IconTimer, IconRun, IconPlus,
     IconTier1, IconTier2, IconTier3, IconInfo, IconRocket, IconTrophy, IconFire, IconCalendar, IconBook,
     type IconProps
@@ -49,7 +49,7 @@ function getTierIcon(tier: 1 | 2 | 3): FC<{ size?: number; color?: string }> {
 
 export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }: PresetPickerModalProps) {
     const { impact, notification } = useHaptic();
-    
+
     const [activeTab, setActiveTab] = useState<TabType>('presets');
     const [presets, setPresets] = useState<PresetResponse[]>([]);
     const [templates, setTemplates] = useState<TaskTemplateResponse[]>([]);
@@ -59,7 +59,7 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
     // Load data when modal opens
     useEffect(() => {
         if (!isOpen) return;
-        
+
         setIsLoading(true);
         Promise.all([
             api.preset.list(),
@@ -99,7 +99,7 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
 
     const handleApplyTemplate = useCallback(async (template: TaskTemplateResponse) => {
         if (applyingId) return;
-        
+
         const tierEnergyCost = template.tier === 1 ? 0 : template.tier === 2 ? 5 : 15;
         if (currentEnergy < tierEnergyCost) {
             notification('error');
@@ -144,6 +144,7 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
         <AnimatePresence>
             {/* Backdrop */}
             <motion.div
+                key="preset-picker-backdrop"
                 className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -153,6 +154,7 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
 
             {/* Modal */}
             <motion.div
+                key="preset-picker-modal"
                 className="fixed bottom-0 left-0 right-0 z-50 p-4 max-h-[80vh]"
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
@@ -226,7 +228,7 @@ export function PresetPickerModal({ isOpen, onClose, onApplied, currentEnergy }:
                     <div className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] flex items-center justify-center gap-2">
                         <IconInfo size={14} className="text-[var(--text-muted)]" />
                         <p className="text-xs text-[var(--text-muted)]">
-                            {activeTab === 'presets' 
+                            {activeTab === 'presets'
                                 ? 'Пресет добавит все свои шаблоны сразу'
                                 : 'Шаблон добавит одну задачу в текущий ран'
                             }
@@ -255,18 +257,16 @@ const TabButton = memo(function TabButton({
     return (
         <motion.button
             onClick={onClick}
-            className={`flex-1 py-2 px-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors ${
-                active
+            className={`flex-1 py-2 px-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors ${active
                     ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
                     : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-            }`}
+                }`}
             whileTap={{ scale: 0.97 }}
         >
             <Icon size={16} />
             <span>{label}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                active ? 'bg-white/20' : 'bg-[var(--bg-card)]'
-            }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-[var(--bg-card)]'
+                }`}>
                 {count}
             </span>
         </motion.button>

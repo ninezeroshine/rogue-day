@@ -67,8 +67,14 @@ def _preset_to_response(preset: Preset) -> PresetResponse:
 async def list_presets(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    offset: int = 0,
+    limit: int = 50,
 ):
-    """List all presets for user with their templates."""
+    """List presets for user with their templates (paginated)."""
+    # Clamp limit to reasonable bounds
+    safe_limit = max(1, min(limit, 100))
+    safe_offset = max(0, offset)
+    
     result = await db.execute(
         select(Preset)
         .where(Preset.user_id == user.id)
@@ -77,6 +83,8 @@ async def list_presets(
             .selectinload(PresetTemplate.template)
         )
         .order_by(Preset.is_favorite.desc(), Preset.created_at.desc())
+        .offset(safe_offset)
+        .limit(safe_limit)
     )
     presets = result.scalars().all()
     

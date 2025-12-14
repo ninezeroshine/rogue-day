@@ -1,12 +1,12 @@
-import { motion } from 'framer-motion';
-import { useState, useCallback, useMemo, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, memo, useRef, useEffect } from 'react';
 import { useServerRunStore } from '../../store/useServerRunStore';
 import { useHaptic } from '../../hooks/useTelegram';
-import { useTimer } from '../../hooks/useTimer';
+import { useServerTimer } from '../../hooks/useTimer';
 import { getTierColor, TIER_CONFIG } from '../../lib/constants';
-import { formatTimer, formatDuration } from '../../lib/utils';
-import { 
-    IconTier1, IconTier2, IconTier3, 
+import { formatDuration } from '../../lib/utils';
+import {
+    IconTier1, IconTier2, IconTier3,
     IconPlay, IconCheck, IconX, IconCheckCircle, IconXCircle,
     IconTimer, IconFire, IconSave
 } from '../../lib/icons';
@@ -25,30 +25,6 @@ function getTierIcon(tier: TierLevel) {
         case 2: return IconTier2;
         case 3: return IconTier3;
     }
-}
-
-/**
- * Calculate remaining seconds based on server's started_at timestamp
- * This ensures timer is synced across devices
- */
-function calculateRemainingSeconds(task: TaskResponse): number {
-    const durationSeconds = task.duration * 60;
-
-    // If task is not active or has no started_at, return full duration
-    if (task.status !== 'active' || !task.started_at) {
-        return durationSeconds;
-    }
-
-    // Calculate elapsed time since task started
-    const startedAt = new Date(task.started_at).getTime();
-    const now = Date.now();
-    const elapsedSeconds = Math.floor((now - startedAt) / 1000);
-
-    // Calculate remaining time
-    const remaining = durationSeconds - elapsedSeconds;
-
-    // Return at least 0 (don't go negative)
-    return Math.max(0, remaining);
 }
 
 function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
@@ -78,51 +54,59 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
     const tierColor = getTierColor(tier);
     const TierIcon = getTierIcon(tier);
 
-    // Calculate remaining time from server's started_at for sync across devices
-    const serverRemaining = useMemo(() => {
-        return calculateRemainingSeconds(task);
-    }, [task.started_at, task.duration, task.status]);
+    // Ref to track if we should auto-complete (prevents double-complete)
+    const autoCompletingRef = useRef(false);
 
-    // Determine if timer should auto-start (task is active with timer)
-    const shouldAutoStart = task.status === 'active' && task.use_timer && serverRemaining > 0;
-
-    // Timer hook - initialized with server-calculated remaining time
-    // autoStart ensures it runs immediately for active tasks (device sync)
-    const timer = useTimer({
-        duration: serverRemaining,
-        autoStart: shouldAutoStart,
+    // Server-synced timer - ALWAYS calculates from started_at
+    // Works correctly after page reload, tab switch, app minimize, etc.
+    const timer = useServerTimer({
+        startedAt: task.started_at,
+        durationMinutes: task.duration,
+        isActive: task.status === 'active' && task.use_timer,
         onComplete: () => {
-            // Auto-complete when timer ends
-            handleComplete();
+            // Auto-complete when timer ends (only if not already completing)
+            if (!autoCompletingRef.current) {
+                autoCompletingRef.current = true;
+                completeTaskAction().finally(() => {
+                    autoCompletingRef.current = false;
+                });
+            }
         },
     });
+
+    // Delay for button press animation to complete before state change
+    const ANIMATION_DELAY = 200; // ms - gives time for whileTap animation
 
     const handleStart = async () => {
         if (isProcessing) return;
         setIsProcessing(true);
         impact('medium');
 
+        // Wait for button animation before optimistic update
+        await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+
         try {
             await startTaskAction();
-            // Start timer if task uses timer
-            if (task.use_timer) {
-                timer.start();
-            }
+            // Timer auto-starts when task.status becomes 'active' (server-synced)
         } finally {
             setIsProcessing(false);
         }
     };
 
     const handleComplete = async () => {
-        if (isProcessing) return;
+        if (isProcessing || autoCompletingRef.current) return;
         setIsProcessing(true);
+        autoCompletingRef.current = true;
         notification('success');
-        timer.stop();
+
+        // Wait for button animation
+        await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
 
         try {
             await completeTaskAction();
         } finally {
             setIsProcessing(false);
+            autoCompletingRef.current = false;
         }
     };
 
@@ -130,7 +114,9 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
         if (isProcessing) return;
         setIsProcessing(true);
         notification('error');
-        timer.stop();
+
+        // Wait for button animation
+        await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
 
         try {
             await failTaskAction();
@@ -144,6 +130,9 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
         setIsProcessing(true);
         impact('light');
 
+        // Wait for button animation
+        await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+
         try {
             await deleteTaskAction();
         } finally {
@@ -151,14 +140,32 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
         }
     };
 
+    // Content animation variants - smooth transitions between states
+    const contentVariants = {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -8 },
+    };
+
+    // Slower transition for smoother feel
+    const contentTransition = { duration: 0.25, ease: 'easeOut' };
+
     // Render based on status
     const renderContent = () => {
         switch (task.status) {
             case 'pending':
                 return (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <motion.div
+                        key="pending"
+                        variants={contentVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={contentTransition}
+                        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div 
+                            <div
                                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                                 style={{ backgroundColor: `${tierColor}15` }}
                             >
@@ -190,32 +197,43 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 onClick={handleStart}
                                 disabled={isProcessing}
                                 className="btn btn-primary flex-1 sm:flex-none"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
+                                whileTap={{ scale: 0.9, filter: 'brightness(0.95)' }}
+                                animate={isProcessing ? { opacity: 0.7 } : { opacity: 1 }}
+                                transition={{ duration: 0.15 }}
                             >
                                 <IconPlay size={16} />
-                                <span className="sm:hidden">Старт</span>
-                                <span className="hidden sm:inline">Начать</span>
+                                <span className="sm:hidden">{isProcessing ? '...' : 'Старт'}</span>
+                                <span className="hidden sm:inline">{isProcessing ? 'Запуск...' : 'Начать'}</span>
                             </motion.button>
                             <motion.button
                                 onClick={handleRemove}
                                 disabled={isProcessing}
                                 className="btn btn-secondary w-12 sm:w-auto"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-danger)', color: 'white' }}
+                                whileTap={{ scale: 0.9 }}
+                                transition={{ duration: 0.15 }}
                             >
                                 <IconX size={18} />
                             </motion.button>
                         </div>
-                    </div>
+                    </motion.div>
                 );
 
             case 'active':
                 return (
-                    <div className="flex flex-col gap-4">
+                    <motion.div
+                        key="active"
+                        variants={contentVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={contentTransition}
+                        className="flex flex-col gap-4"
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div 
+                                <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse"
                                     style={{ backgroundColor: `${tierColor}20` }}
                                 >
@@ -238,7 +256,7 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                     className="text-3xl font-mono font-bold"
                                     style={{ color: tierColor }}
                                 >
-                                    {formatTimer(timer.remaining)}
+                                    {timer.formatted}
                                 </div>
                             )}
                         </div>
@@ -269,34 +287,42 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                 onClick={handleComplete}
                                 disabled={isProcessing}
                                 className="btn btn-primary glow-success"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
+                                whileTap={{ scale: 0.9, filter: 'brightness(0.95)' }}
+                                animate={isProcessing ? { opacity: 0.7 } : { opacity: 1 }}
+                                transition={{ duration: 0.15 }}
                             >
                                 <IconCheck size={16} />
-                                <span>Завершить</span>
+                                <span>{isProcessing ? 'Сохранение...' : 'Завершить'}</span>
                             </motion.button>
                             {tierConfig.canFail && (
                                 <motion.button
                                     onClick={handleFail}
                                     disabled={isProcessing}
                                     className="btn btn-danger"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
+                                    whileTap={{ scale: 0.9, filter: 'brightness(0.95)' }}
+                                    animate={isProcessing ? { opacity: 0.7 } : { opacity: 1 }}
+                                    transition={{ duration: 0.15 }}
                                 >
                                     <IconX size={16} />
                                     <span>Провал</span>
                                 </motion.button>
                             )}
                         </div>
-                    </div>
+                    </motion.div>
                 );
 
             case 'completed':
                 return (
                     <motion.div
+                        key="completed"
                         className="flex items-center justify-between"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.8 }}
+                        variants={contentVariants}
+                        initial="initial"
+                        animate={{ ...contentVariants.animate, opacity: 0.8 }}
+                        exit="exit"
+                        transition={contentTransition}
                     >
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/15 flex items-center justify-center">
@@ -331,17 +357,23 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
                                     }
                                 }}
                                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] transition-colors"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.05, borderColor: 'var(--accent-primary)' }}
+                                whileTap={{ scale: 0.9 }}
+                                transition={{ duration: 0.15 }}
                             >
                                 <IconSave size={14} />
                                 <span>Шаблон</span>
                             </motion.button>
                         ) : (
-                            <span className="text-xs text-[var(--accent-primary)] flex items-center gap-1">
+                            <motion.span 
+                                className="text-xs text-[var(--accent-primary)] flex items-center gap-1"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                            >
                                 <IconCheck size={14} />
                                 <span>Сохранено</span>
-                            </span>
+                            </motion.span>
                         )}
                     </motion.div>
                 );
@@ -349,9 +381,13 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
             case 'failed':
                 return (
                     <motion.div
+                        key="failed"
                         className="flex items-center justify-between"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.5 }}
+                        variants={contentVariants}
+                        initial="initial"
+                        animate={{ ...contentVariants.animate, opacity: 0.5 }}
+                        exit="exit"
+                        transition={contentTransition}
                     >
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-[var(--accent-danger)]/15 flex items-center justify-center">
@@ -416,15 +452,29 @@ function ServerTaskSlotComponent({ task }: ServerTaskSlotProps) {
             className="card"
             style={getCardStyles()}
         >
-            {renderContent()}
+            <AnimatePresence mode="wait">
+                {renderContent()}
+            </AnimatePresence>
         </motion.div>
     );
 }
 
 // Memoize component to prevent re-renders when task hasn't changed
+// Use field-by-field comparison instead of reference equality
 export const ServerTaskSlot = memo(ServerTaskSlotComponent, (prevProps, nextProps) => {
-    // Only re-render if task.id changed or task object reference changed
-    // This prevents unnecessary re-renders when other tasks in the list update
-    return prevProps.task.id === nextProps.task.id && 
-           prevProps.task === nextProps.task;
+    const prev = prevProps.task;
+    const next = nextProps.task;
+
+    // Compare fields that affect rendering
+    return (
+        prev.id === next.id &&
+        prev.status === next.status &&
+        prev.started_at === next.started_at &&
+        prev.completed_at === next.completed_at &&
+        prev.xp_earned === next.xp_earned &&
+        prev.title === next.title &&
+        prev.tier === next.tier &&
+        prev.duration === next.duration &&
+        prev.use_timer === next.use_timer
+    );
 });

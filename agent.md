@@ -1,5 +1,7 @@
 ---
-trigger: always_on
+description: Rogue-Day Project Guidelines
+globs: 
+alwaysApply: true
 ---
 
 # 🎮 ROGUE-DAY: Системный промпт для разработки

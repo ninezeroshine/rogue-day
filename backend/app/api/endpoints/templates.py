@@ -22,12 +22,19 @@ async def list_templates(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     category: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
 ):
-    """List all task templates for user."""
+    """List task templates for user (paginated)."""
+    # Clamp limit to reasonable bounds
+    safe_limit = max(1, min(limit, 100))
+    safe_offset = max(0, offset)
+    
     query = select(TaskTemplate).where(TaskTemplate.user_id == user.id)
     if category:
         query = query.where(TaskTemplate.category == category)
     query = query.order_by(TaskTemplate.times_used.desc(), TaskTemplate.created_at.desc())
+    query = query.offset(safe_offset).limit(safe_limit)
     
     result = await db.execute(query)
     templates = result.scalars().all()
